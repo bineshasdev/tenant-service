@@ -1,0 +1,38 @@
+spring:
+    application:
+        name: account-service
+    cloud:
+        consul:
+            host: localhost
+            port: 8500
+    datasource:
+        url: jdbc:postgresql://postgres:5432/account_db
+        username: postgres
+        password: ${DB_PASSWORD}
+    jpa:
+        hibernate:
+         ddl-auto: update
+        properties:
+            hibernate:
+                dialect: org.hibernate.dialect.PostgreSQLDialect    
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+                         
+keycloak:
+  auth-server-url: http://localhost:8080
+  master-realm: master
+  admin-client-id: admin-cli
+  admin-client-secret: change-me
+  admin-username: admin
+  admin-password: admin
+ 
