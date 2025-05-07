@@ -8,6 +8,6 @@ import com.offisync360.account.model.TenantConfig;
 
 public interface TenantConfigRepository extends JpaRepository<TenantConfig, String> {
   
-     Optional<TenantConfig> findById(Long id);
+     Optional<TenantConfig> findById(String id);
 
 }

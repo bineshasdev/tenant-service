@@ -18,13 +18,13 @@ public class SubscriptionPlanInitializer {
     @PostConstruct
     public void init() {
         if (subscriptionPlanRepository.count() == 0) {
-            List<SubscriptionPlan> plans = List.of(
-                createPlan("FREE", 5, "0.00", false, false, 1),
-                createPlan("BASIC", 20, "9.99", false, false, 10),
-                createPlan("PREMIUM", 100, "29.99", true, false, 50),
-                createPlan("ENTERPRISE", 1000, "99.99", true, true, 500)
-            );
-            subscriptionPlanRepository.saveAll(plans);
+          //  List<SubscriptionPlan> plans = List.of(
+             //   createPlan("FREE", 5, "0.00", false, false, 1),
+            //    createPlan("BASIC", 20, "9.99", false, false, 10),
+             //   createPlan("PREMIUM", 100, "29.99", true, false, 50),
+              //  createPlan("ENTERPRISE", 1000, "99.99", true, true, 500)
+            //);
+          //  subscriptionPlanRepository.saveAll(plans);
         }
     }
 

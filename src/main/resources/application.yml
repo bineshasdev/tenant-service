@@ -1,33 +1,25 @@
 spring:
+    profiles:
+      active:
+        - dev
     application:
         name: account-service
     cloud:
         consul:
             host: localhost
-            port: 8500
-    datasource:
-        url: jdbc:postgresql://postgres:5432/account_db
-        username: postgres
-        password: ${DB_PASSWORD}
-    jpa:
-        hibernate:
-         ddl-auto: update
-        properties:
-            hibernate:
-                dialect: org.hibernate.dialect.PostgreSQLDialect    
+            port: 8500 
+    flyway:
+      baseline-on-migrate: true        
 
 management:
   endpoints:
     web:
       exposure:
-        include: "*"
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-    tags:
-      application: ${spring.application.name}
-                         
+        include: health,info,prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled:  true                        
 keycloak:
   auth-server-url: http://localhost:8080
   master-realm: master

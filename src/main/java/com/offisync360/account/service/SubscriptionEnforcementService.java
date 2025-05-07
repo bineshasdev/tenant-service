@@ -27,7 +27,7 @@ public class SubscriptionEnforcementService {
     @Transactional
     public void checkUserLimit(String tenantId) {
         Tenant tenant = getTenantWithPlan(tenantId);
-        long currentUserCount = userRepository.countByTenantId(tenant.getTenantId());
+        long currentUserCount = userRepository.countByTenantId(tenant.getId());
         
         if (currentUserCount >= tenant.getSubscriptionPlan().getMaxUsers()) {
             Optional<SubscriptionPlan> nextPlan = subscriptionPlanRepository
@@ -48,7 +48,7 @@ public class SubscriptionEnforcementService {
     @Transactional
     public boolean upgradeIfNeeded(String tenantId) {
         Tenant tenant = getTenantWithPlan(tenantId);
-        long currentUserCount = userRepository.countByTenantId(tenant.getTenantId());
+        long currentUserCount = userRepository.countByTenantId(tenant.getId());
         
         return subscriptionPlanRepository
             .findFirstByMaxUsersGreaterThanEqualOrderByMonthlyPriceAsc(currentUserCount)
@@ -62,7 +62,7 @@ public class SubscriptionEnforcementService {
     }
 
     private Tenant getTenantWithPlan(String uuid) {
-        return tenantRepository.findByUuid(uuid)
+        return tenantRepository.findById(uuid)
             .orElseThrow(() -> new LocalizedException("error.tenant.invalid", HttpStatus.BAD_REQUEST));
     }
 }

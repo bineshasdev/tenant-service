@@ -25,7 +25,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor 
 public class Tenant {
     @Id
-    private String tenantId; // Matches Keycloak tenant ID
+    private String id; // Matches Keycloak tenant ID
    
     private String displayName;
 
@@ -62,5 +62,7 @@ public class Tenant {
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL)
     private List<User> users = new ArrayList<>();
+
+    private String namesds;
 
 }

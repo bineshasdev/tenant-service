@@ -11,9 +11,7 @@ import com.offisync360.account.model.TenantConfig;
 
 @Repository
 public interface TenantRepository extends JpaRepository<Tenant, String> {
-    Optional<Tenant> findByDomain(String domain);
-
-    Optional<Tenant> findByUuid(String uuid);
+    Optional<Tenant> findByDomain(String domain); 
 
     @Query("SELECT c FROM TenantConfig c WHERE c.id = ?1")
     Optional<TenantConfig> findConfigById(String id);

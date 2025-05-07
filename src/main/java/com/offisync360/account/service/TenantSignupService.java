@@ -69,7 +69,7 @@ public class TenantSignupService {
 
         // 7. Save to database
         Tenant tenant = new Tenant();
-        tenant.setTenantId(request.getTenantId());
+        tenant.setId(request.getTenantId());
         tenant.setDisplayName(request.getDisplayName());
         tenant.setAdminEmail(request.getAdminEmail());
         tenant.setRealmName(realmName);
@@ -97,7 +97,7 @@ public class TenantSignupService {
          */
 
         return TenantSignupResponse.builder()
-                .tenantId(tenant.getTenantId())
+                .tenantId(tenant.getId())
                 .realmName(realmName)
                 .adminEmail(request.getAdminEmail())
                 .apiClientId(apiClient.getClientId())
