@@ -1,63 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.4.4</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.offisync360</groupId>
 	<artifactId>account-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>account-service</name>
-	<description>Demo project for Spring Boot</description>
-	<url/>
+	<description>Account Microservice.</description>
+	<url />
 	<licenses>
-		<license/>
+		<license />
 	</licenses>
 	<developers>
-		<developer/>
+		<developer>
+			<email>bineshbabu@gmail.com</email>
+		</developer>
 	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+
 	<properties>
 		<java.version>17</java.version>
 	</properties>
 	<dependencies>
-		
-		<dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-consul-discovery</artifactId>
-</dependency>
- 
-<!-- Config Server -->
-<dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-config</artifactId>
-</dependency>
 
-<!-- Circuit Breaker -->
-<dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
-</dependency>
-<dependency>
-  <groupId>io.micrometer</groupId>
-  <artifactId>micrometer-registry-prometheus</artifactId>
-</dependency>
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-actuator</artifactId>
-  </dependency>
-  
-<!-- Distributed Tracing -->
-<!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-sleuth 
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-consul-discovery</artifactId>
+		</dependency>
+
+		<!-- Config Server -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-config</artifactId>
+		</dependency>
+
+		<!-- Circuit Breaker -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<!-- Distributed Tracing -->
+		<!--
+		https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-sleuth 
  
 <dependency>
     <groupId>org.springframework.cloud</groupId>
@@ -79,26 +78,75 @@
 		</dependency>
 
 		<dependency>
-    <groupId>org.keycloak</groupId>
-    <artifactId>keycloak-spring-boot-starter</artifactId>
-    <version>24.0.1</version> <!-- Use latest stable version -->
-</dependency>
+			<groupId>org.keycloak</groupId>
+			<artifactId>keycloak-spring-boot-starter</artifactId>
+			<version>25.0.3</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.bouncycastle</groupId>
+					<artifactId>bcprov-jdk18on</artifactId>
+				</exclusion>
+				<exclusion>
 
-<!-- Required for Spring Boot 3+ -->
+					<groupId>org.keycloak</groupId>
+					<artifactId>keycloak-core</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk18on</artifactId>
+			<version>1.78.1</version>
+		</dependency>
+		<!-- Required for Spring Boot 3+ -->
+		<dependency>
+			<groupId>org.keycloak</groupId>
+			<artifactId>keycloak-admin-client</artifactId>
+			<version>26.0.5</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.keycloak/keycloak-core -->
+		<dependency>
+			<groupId>org.keycloak</groupId>
+			<artifactId>keycloak-core</artifactId>
+			<version>26.2.4</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.keycloak/keycloak-adapter-spi -->
 <dependency>
     <groupId>org.keycloak</groupId>
-    <artifactId>keycloak-admin-client</artifactId>
-    <version>24.0.1</version>
+    <artifactId>keycloak-adapter-spi</artifactId>
+    <version>26.2.4</version>
 </dependency>
-	 <dependency>
-        <groupId>com.graphql-java</groupId>
-        <artifactId>graphql-spring-boot-starter</artifactId>
-        <version>5.0.2</version>
-    </dependency>
-	<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+<!-- https://mvnrepository.com/artifact/org.keycloak/keycloak-policy-enforcer -->
+<dependency>
+    <groupId>org.keycloak</groupId>
+    <artifactId>keycloak-policy-enforcer</artifactId>
+    <version>26.0.5</version>
 </dependency>
+<!-- https://mvnrepository.com/artifact/org.keycloak/keycloak-authz-client -->
+<dependency>
+    <groupId>org.keycloak</groupId>
+    <artifactId>keycloak-authz-client</artifactId>
+    <version>26.0.5</version>
+</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.17.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.7.0</version>
+		</dependency>
+
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
@@ -119,7 +167,7 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
-		</dependency> 
+		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>
@@ -133,23 +181,23 @@
 		</dependency>
 	</dependencies>
 	<dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-dependencies</artifactId>
-            <version>2024.0.1</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency> 
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-bom</artifactId>
-            <version>1.14.6</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency>
-    </dependencies> 
-</dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>2024.0.1</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>io.micrometer</groupId>
+				<artifactId>micrometer-bom</artifactId>
+				<version>1.14.6</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 
 	<build>
@@ -182,8 +230,8 @@
 					</excludes>
 				</configuration>
 			</plugin>
-			 
-			  
+
+
 		</plugins>
 	</build>
 

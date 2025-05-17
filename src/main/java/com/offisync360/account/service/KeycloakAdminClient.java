@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.representations.account.ConsentRepresentation;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.ClientScopeRepresentation;
@@ -17,8 +18,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import jakarta.ws.rs.core.Response;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
+@Slf4j
 public class KeycloakAdminClient { 
 
     @Value("${keycloak.auth-server-url}")
@@ -33,6 +36,7 @@ public class KeycloakAdminClient {
     private String username;
     @Value("${keycloak.admin-password}")
     private String password;
+
 
     public RealmRepresentation createRealm(String realmName, String displayName) {
         Keycloak keycloak = getAdminKeycloakInstance();
@@ -50,7 +54,7 @@ public class KeycloakAdminClient {
 
     public UserRepresentation createAdminUser(String realmName, String email, 
                                           String password, String firstName, String lastName) {
-        Keycloak keycloak = getKeycloakInstanceForRealm(realmName);
+        Keycloak keycloak = getAdminKeycloakInstance();
         
         // Create user
         UserRepresentation user = new UserRepresentation();
@@ -80,7 +84,7 @@ public class KeycloakAdminClient {
 
     public ClientRepresentation createClient(String realmName, String clientId, 
                                            String clientName, boolean confidential) {
-        Keycloak keycloak = getKeycloakInstanceForRealm(realmName);
+        Keycloak keycloak = getAdminKeycloakInstance();
         
         ClientRepresentation client = new ClientRepresentation();
         client.setClientId(clientId);
@@ -108,7 +112,7 @@ public class KeycloakAdminClient {
     }
 
     public void createRealmRoles(String realmName, List<String> roleNames) {
-        Keycloak keycloak = getKeycloakInstanceForRealm(realmName);
+        Keycloak keycloak = getAdminKeycloakInstance();
         
         roleNames.forEach(roleName -> {
             RoleRepresentation role = new RoleRepresentation();
@@ -119,27 +123,29 @@ public class KeycloakAdminClient {
 
     private Keycloak getAdminKeycloakInstance() {
         return KeycloakBuilder.builder()
-            .serverUrl(serverUrl)
+            .serverUrl(serverUrl) 
             .realm(masterRealm)
             .clientId(clientId)
-            .clientSecret(clientSecret)
             .username(username)
             .password(password)
             .build();
     }
-
-    private Keycloak getKeycloakInstanceForRealm(String realm) {
-        return KeycloakBuilder.builder()
-            .serverUrl(serverUrl)
-            .realm(realm)
-            .clientId(clientId)
-            .clientSecret(clientSecret)
-            .username(username)
-            .password(password)
-            .build();
-    }
-    
+ 
     public String getServerUrl() {
         return serverUrl;
+    }
+
+    public boolean realmExists(String realm) {
+        Keycloak keycloak = getAdminKeycloakInstance();
+         try {
+            RealmResource realmResource = keycloak.realm(realm);
+            
+            realmResource.toRepresentation();
+            return true;
+        } catch (Exception e) {
+            log.error("Realm check error", e);
+            return false;
+        }
+      
     }
 }

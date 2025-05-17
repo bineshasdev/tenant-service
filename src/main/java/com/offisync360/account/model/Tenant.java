@@ -56,6 +56,8 @@ public class Tenant {
 
     private String currency;
 
+    private String adminTempPassword;
+
     @ManyToOne
     @JoinColumn(name = "subscription_plan_id")
     private SubscriptionPlan subscriptionPlan;

@@ -8,7 +8,6 @@ public class LocalizedException extends RuntimeException {
     private final Object[] args;
     private final HttpStatus status;
 
-
     public LocalizedException(String messageKey, HttpStatus status, Object... args) {
         this.messageKey = messageKey;
         this.args = args;

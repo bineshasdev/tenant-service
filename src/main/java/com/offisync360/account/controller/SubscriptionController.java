@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,13 +36,11 @@ public class SubscriptionController {
     }
 
     @PostMapping("/plans")
-    @PreAuthorize("hasRole('admin')")
     public SubscriptionPlan createPlan(@RequestBody SubscriptionPlan plan) {
         return planService.createPlan(plan);
     }
 
     @PutMapping("/plans/{id}")
-    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<SubscriptionPlan> updatePlan(
             @PathVariable Long id,
             @RequestBody SubscriptionPlan plan) {
@@ -52,13 +49,12 @@ public class SubscriptionController {
 
     // Tenant admin endpoints
     @PostMapping("/{tenantId}/upgrade")
-    @PreAuthorize("hasRole('tenant-admin')")
     public ResponseEntity<Tenant> upgradePlan(
             @PathVariable String tenantId,
-            @RequestParam Long newPlanId) {
+            @RequestParam String code) {
         return tenantRepository.findById(tenantId)
                 .flatMap(tenant -> planService.getAllPlans().stream()
-                        .filter(p -> p.getId().equals(newPlanId))
+                        .filter(p -> p.getCode().equals(code))
                         .findFirst()
                         .map(newPlan -> {
                             tenant.setSubscriptionPlan(newPlan);

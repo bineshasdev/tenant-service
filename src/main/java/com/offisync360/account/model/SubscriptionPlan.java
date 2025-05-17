@@ -2,6 +2,8 @@ package com.offisync360.account.model;
 
 import java.math.BigDecimal;
 
+import com.offisync360.account.common.constants.Subscriptions;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -33,7 +35,7 @@ public class SubscriptionPlan {
     @Column(nullable = false)
     private Integer maxUsers;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column( precision = 10, scale = 2)
     private BigDecimal monthlyPrice;
 
     // Additional fields for feature flags
@@ -48,5 +50,23 @@ public class SubscriptionPlan {
         this.name = name;
         this.maxUsers = maxUsers;
         this.monthlyPrice = monthlyPrice;
+    }
+
+    public static SubscriptionPlan basic() {
+        return SubscriptionPlan.builder().code(Subscriptions.BASIC.getCode())
+        .name(Subscriptions.BASIC.getDisplayName())
+        .maxUsers(Subscriptions.BASIC.getMaxUsers()).monthlyPrice(BigDecimal.valueOf(0)).build();
+    }
+
+    public static SubscriptionPlan free() {
+        return SubscriptionPlan.builder().code(Subscriptions.FREE.getCode())
+        .name(Subscriptions.FREE.getDisplayName())
+        .maxUsers(Subscriptions.FREE.getMaxUsers()).monthlyPrice(BigDecimal.valueOf(0)).build();
+    }
+
+    public static SubscriptionPlan pro() {
+        return SubscriptionPlan.builder().code(Subscriptions.PRO.getCode())
+        .name(Subscriptions.PRO.getDisplayName())
+        .maxUsers(Subscriptions.PRO.getMaxUsers()).monthlyPrice(BigDecimal.valueOf(0)).build();
     }
 }

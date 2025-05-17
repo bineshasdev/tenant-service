@@ -1,6 +1,7 @@
 package com.offisync360.account.security;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -32,19 +33,37 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .authorizeHttpRequests(auth -> auth
+        .authorizeHttpRequests(auth -> {
+            auth
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/api/account/signup").hasRole("account-admin")
-                .anyRequest().authenticated()
-            )
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**", "/swagger-resources", "/api-docs/**",
+                    "/v3/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html"
+                ).permitAll();
+            // Permit Swagger UI only for dev/local
+          /*if (isDevOrLocal()) {
+                auth
+                    .requestMatchers(
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**"
+                    ).permitAll();
+            }
+ */  
+            auth.anyRequest().permitAll();
+        })
+             
             .oauth2ResourceServer(oauth2 -> oauth2
                 .authenticationEntryPoint(authenticationEntryPoint())
                 .accessDeniedHandler(accessDeniedHandler())
-                .jwt(jwt -> jwt
+                .jwt(Customizer.withDefaults())
+              /* .jwt(jwt -> jwt
                     .decoder(jwtDecoder())
                     .jwtAuthenticationConverter(jwtAuthenticationConverter())
-                )
+                ) */ 
             ) .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
@@ -52,6 +71,10 @@ public class SecurityConfig {
         return http.build();
     }
 
+    private boolean isDevOrLocal() {
+        String activeProfile = System.getProperty("spring.profiles.active", "");
+        return activeProfile.contains("dev") || activeProfile.contains("local");
+    }
     /**
      * This method configures the JWT decoder to use a tenant-specific decoder based on the resolved tenant.
      * It retrieves the tenant ID from the request and uses it to get the appropriate JwtDecoder instance.

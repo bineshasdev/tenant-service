@@ -21,8 +21,7 @@ public class AccountController {
 
     private final TenantSignupService tenantSignupService;
 
-    @PostMapping("/signup")
-    @PreAuthorize("hasRole('account-admin')")
+    @PostMapping("/signup") 
     public ResponseEntity<TenantSignupResponse> signupTenant(
             @Valid @RequestBody TenantSignupRequest request) {
         TenantSignupResponse response = tenantSignupService.signupTenant(request);

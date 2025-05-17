@@ -19,12 +19,23 @@ management:
   prometheus:
     metrics:
       export:
-        enabled:  true                        
+        enabled:  true           
+        
+app:
+ client-ids:
+   api: ae081f7c-f41f-431a-a797-c8ab62fe38c8
+   ui: 44ab21a1-d07f-4d97-960b-2ef6ba935ded     
+
 keycloak:
-  auth-server-url: http://localhost:8080
+  auth-server-url: http://localhost:9080
   master-realm: master
   admin-client-id: admin-cli
-  admin-client-secret: change-me
+  admin-client-secret: a7B4K8bDolQ49K96r9kr1DZNSJzF1QI4
   admin-username: admin
-  admin-password: admin
- 
+  admin-password: admin123
+  
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html

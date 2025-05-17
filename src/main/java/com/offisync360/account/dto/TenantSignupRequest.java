@@ -5,18 +5,16 @@ import java.util.List;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotNull; 
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
 public class TenantSignupRequest {
  
-    @NotBlank(message = "Tenant ID is required")
-    @Pattern(regexp = "^[a-z0-9-]+$", message = "Tenant ID must contain only lowercase letters, numbers, and hyphens")
-    @Size(min = 3, max = 30, message = "Tenant ID must be between 3 and 30 characters")
-    private String tenantId;
+    @NotBlank(message = "Company name is required") 
+    @Size(min = 3, max = 30, message = "Company name must be between 3 and 30 characters")
+    private String companyName;
 
     @NotBlank(message = "Display name is required")
     @Size(min = 3, max = 100, message = "Display name must be between 3 and 100 characters")
@@ -45,4 +43,10 @@ public class TenantSignupRequest {
     private List<String> defaultRoles = List.of("user", "admin");
     private Boolean enableRegistration = false;
     private Boolean emailVerificationRequired = true;
+
+    private String phone;
+
+    private String country = "IN";
+
+    private String locale = "en-GB";
 }

@@ -51,9 +51,18 @@ public class GlobalExceptionHandler {
                 .path(((ServletWebRequest) request).getRequest().getRequestURI())
                 .build();
 
-                if( ex instanceof BusinessValidationException) {
-                    
-                    errorResponse.setError("Business Validation Error");
+                if( ex instanceof LocalizedException) { 
+                   
+                    try{
+                        var localizedMsg =   resolver.getMessage(ex.getMessageKey(), ex.getArgs(), Locale.getDefault());
+                        errorResponse.setMessage(localizedMsg);
+                        errorResponse.setError(localizedMsg);
+                   } catch (Exception e) {
+                       
+                        errorResponse.setMessage(ex.getMessageKey());
+                        errorResponse.setError(ex.getMessageKey());
+                   }
+                   
                 } else if (ex instanceof InvalidSubscriptionCodeException) {
                     errorResponse.setError("Invalid Subscription Code Error");
                 } else {
