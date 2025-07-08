@@ -1,9 +1,9 @@
 # application-dev.yml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5431/account-service-db
+    url: jdbc:postgresql://localhost:5433/tenant-service-db
     username: root
-    password: Welcome@123
+    password: root
     driver-class-name: org.postgresql.Driver
   jpa: 
     hibernate:
