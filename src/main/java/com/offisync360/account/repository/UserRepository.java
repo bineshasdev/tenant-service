@@ -27,4 +27,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query(value = "SELECT COUNT(*) FROM users WHERE tenant_id = :tenantId", 
        nativeQuery = true)
     long fastCountByTenant(@Param("tenantId") String tenantId);
+    
+    Optional<User> findByEmailAndTenantId(String email, String tenantId);
 }

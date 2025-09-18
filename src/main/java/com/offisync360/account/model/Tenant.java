@@ -57,14 +57,6 @@ public class Tenant {
     private String currency;
 
     private String adminTempPassword;
-
-    @ManyToOne
-    @JoinColumn(name = "subscription_plan_id")
-    private SubscriptionPlan subscriptionPlan;
-
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL)
-    private List<User> users = new ArrayList<>();
-
-    private String namesds;
+ 
 
 }

@@ -10,7 +10,18 @@ spring:
             port: 8500 
     flyway:
       baseline-on-migrate: true        
-
+    mail:
+      host: smtp.gmail.com
+      port: 587
+      username: ${MAIL_USERNAME:}
+      password: ${MAIL_PASSWORD:}
+      properties:
+        mail:
+          smtp:
+            auth: true
+            starttls:
+              enable: true
+        debug: false
 management:
   endpoints:
     web:
@@ -20,12 +31,7 @@ management:
     metrics:
       export:
         enabled:  true           
-        
-app:
- client-ids:
-   api: ae081f7c-f41f-431a-a797-c8ab62fe38c8
-   ui: 44ab21a1-d07f-4d97-960b-2ef6ba935ded     
-
+         
 keycloak:
   auth-server-url: http://localhost:9080
   master-realm: master
@@ -39,3 +45,39 @@ springdoc:
     enabled: true
   swagger-ui:
     path: /swagger-ui.html
+ 
+  
+
+# Application Configuration
+app:
+  client-ids:
+   api: ae081f7c-f41f-431a-a797-c8ab62fe38c8
+   ui: 44ab21a1-d07f-4d97-960b-2ef6ba935ded   
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  email:
+    from: ${MAIL_FROM:noreply@offisync360.com}
+    from-name: ${MAIL_FROM_NAME:OffiSync360}
+
+# Rate Limiting Configuration
+rate-limit:
+  default:
+    window-size-minutes: 15
+    max-requests: 100
+  signup:
+    max-requests: 5
+  login:
+    max-requests: 10
+  otp:
+    max-requests: 3
+
+# Mobile Verification Configuration
+mobile-verification:
+  otp-length: 6
+  otp-expiry-minutes: 10
+  max-attempts: 3
+  max-requests-per-hour: 5
+
+# Audit Configuration
+audit:
+  enabled: true
+  retention-days: 90

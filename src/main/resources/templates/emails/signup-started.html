@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Setup in Progress</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .highlight {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 14px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">OffiSync360</div>
+            <h1>Welcome to OffiSync360!</h1>
+        </div>
+        
+        <div class="content">
+            <p>Dear <strong th:text="${tenantName}">Company Name</strong> Team,</p>
+            
+            <p>Thank you for choosing OffiSync360! We're excited to have you on board. Your account setup is currently in progress.</p>
+            
+            <div class="highlight">
+                <h3>What's happening now:</h3>
+                <ul>
+                    <li>✅ Your tenant account has been created</li>
+                    <li>🔄 Setting up your dedicated Keycloak realm</li>
+                    <li>🔄 Configuring your admin user account</li>
+                    <li>🔄 Preparing your workspace</li>
+                </ul>
+            </div>
+            
+            <p><strong>Account Details:</strong></p>
+            <ul>
+                <li><strong>Company:</strong> <span th:text="${tenantName}">Company Name</span></li>
+                <li><strong>Admin Email:</strong> <span th:text="${adminEmail}">admin@company.com</span></li>
+                <li><strong>Tenant ID:</strong> <span th:text="${companyName}">company-id</span></li>
+            </ul>
+            
+            <p>We'll send you another email once your account setup is complete with your login credentials and next steps.</p>
+            
+            <p>If you have any questions during this process, please don't hesitate to contact our support team.</p>
+        </div>
+        
+        <div class="footer">
+            <p>Best regards,<br>The OffiSync360 Team</p>
+            <p><a th:href="${baseUrl}" th:text="${baseUrl}">https://offisync360.com</a></p>
+            <p><small>This is an automated message. Please do not reply to this email.</small></p>
+        </div>
+    </div>
+</body>
+</html>

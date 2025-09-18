@@ -13,23 +13,28 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.offisync360.account.annotation.RateLimited;
+import com.offisync360.account.dto.SubscriptionChangeRequest;
+import com.offisync360.account.model.Subscription;
 import com.offisync360.account.model.SubscriptionPlan;
-import com.offisync360.account.model.Tenant;
-import com.offisync360.account.repository.TenantRepository;
-import com.offisync360.account.service.SubscriptionEnforcementService;
+import com.offisync360.account.service.SubscriptionManagementService;
 import com.offisync360.account.service.SubscriptionPlanService;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/subscriptions")
 @RequiredArgsConstructor
+@Slf4j
 public class SubscriptionController {
-     private final SubscriptionPlanService planService;
-    private final SubscriptionEnforcementService enforcementService;
-    private final TenantRepository tenantRepository;
+    
+    private final SubscriptionPlanService planService;
+    private final SubscriptionManagementService subscriptionManagementService;
 
-    // Admin endpoints
+    // Admin endpoints for subscription plans
     @GetMapping("/plans")
     public List<SubscriptionPlan> getAllPlans() {
         return planService.getAllPlans();
@@ -47,35 +52,77 @@ public class SubscriptionController {
         return ResponseEntity.of(planService.updatePlan(id, plan));
     }
 
-    // Tenant admin endpoints
-    @PostMapping("/{tenantId}/upgrade")
-    public ResponseEntity<Tenant> upgradePlan(
+    // Tenant subscription management endpoints
+    @RateLimited
+    @PostMapping("/{tenantId}/create")
+    public ResponseEntity<Subscription> createSubscription(
             @PathVariable String tenantId,
-            @RequestParam String code) {
-        return tenantRepository.findById(tenantId)
-                .flatMap(tenant -> planService.getAllPlans().stream()
-                        .filter(p -> p.getCode().equals(code))
-                        .findFirst()
-                        .map(newPlan -> {
-                            tenant.setSubscriptionPlan(newPlan);
-                            return ResponseEntity.ok(tenantRepository.save(tenant));
-                        }))
+            @RequestParam String planCode,
+            @RequestParam String billingCycle,
+            @RequestParam(defaultValue = "false") boolean startTrial,
+            HttpServletRequest httpRequest) {
+        
+        log.info("Creating subscription for tenant {}: {} plan", tenantId, planCode);
+        
+        Subscription.BillingCycle cycle = Subscription.BillingCycle.valueOf(billingCycle.toUpperCase());
+        Subscription subscription = subscriptionManagementService.createSubscription(
+                tenantId, planCode, cycle, startTrial, httpRequest);
+        
+        return ResponseEntity.ok(subscription);
+    }
+
+    @RateLimited
+    @PutMapping("/{tenantId}/change")
+    public ResponseEntity<Subscription> changeSubscription(
+            @PathVariable String tenantId,
+            @Valid @RequestBody SubscriptionChangeRequest request,
+            HttpServletRequest httpRequest) {
+        
+        log.info("Changing subscription for tenant {}: {} -> {}", 
+                tenantId, request.getCurrentPlan(), request.getNewPlan());
+        
+        Subscription subscription = subscriptionManagementService.changeSubscription(
+                tenantId, request.getNewPlan(), request.getBillingCycle(), httpRequest);
+        
+        return ResponseEntity.ok(subscription);
+    }
+
+    @RateLimited
+    @PostMapping("/{tenantId}/cancel")
+    public ResponseEntity<String> cancelSubscription(
+            @PathVariable String tenantId,
+            @RequestParam String reason,
+            HttpServletRequest httpRequest) {
+        
+        log.info("Cancelling subscription for tenant {}: {}", tenantId, reason);
+        
+        subscriptionManagementService.cancelSubscription(tenantId, reason, httpRequest);
+        return ResponseEntity.ok("Subscription cancelled successfully");
+    }
+
+    @GetMapping("/{tenantId}")
+    public ResponseEntity<Subscription> getActiveSubscription(@PathVariable String tenantId) {
+        return subscriptionManagementService.getActiveSubscription(tenantId)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{tenantId}/usage")
-    public ResponseEntity<Map<String, Object>> getUsage(@PathVariable String tenantId) {
-        return tenantRepository.findById(tenantId)
-                .map(tenant -> {
-                    int userCount = tenant.getUsers().size();
-                    SubscriptionPlan plan = tenant.getSubscriptionPlan();
-                    return ResponseEntity.ok(Map.of(
-                        "currentUsers", userCount,
-                        "maxUsers", plan.getMaxUsers(),
-                        "remainingUsers", plan.getMaxUsers() - userCount,
-                        "plan", plan
-                    ));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Map<String, Object>> getSubscriptionUsage(@PathVariable String tenantId) {
+        Map<String, Object> usage = subscriptionManagementService.getSubscriptionUsage(tenantId);
+        return ResponseEntity.ok(usage);
+    }
+
+    // Admin endpoints for subscription management
+    @PostMapping("/admin/process-renewals")
+    public ResponseEntity<String> processRenewals() {
+        subscriptionManagementService.processRenewals();
+        return ResponseEntity.ok("Renewals processed successfully");
+    }
+
+    @PostMapping("/admin/process-trial-expirations")
+    public ResponseEntity<String> processTrialExpirations() {
+        subscriptionManagementService.processTrialExpirations();
+        return ResponseEntity.ok("Trial expirations processed successfully");
     }
 }

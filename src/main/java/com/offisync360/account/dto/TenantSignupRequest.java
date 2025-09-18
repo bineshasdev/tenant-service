@@ -44,7 +44,7 @@ public class TenantSignupRequest {
     private Boolean enableRegistration = false;
     private Boolean emailVerificationRequired = true;
 
-    private String phone;
+    private String mobileNumber;
 
     private String country = "IN";
 
