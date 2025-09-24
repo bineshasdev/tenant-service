@@ -12,7 +12,7 @@ public class TenantIdService {
     private static final int MAX_ATTEMPTS = 5;
 
     /**
-     * Generates a tenant ID based on company name with fallback to UUID
+     * Generates a tenant ID based on company name with fallback to UUID 
      */
     public String generateTenantId(String companyName) {
         // First try: normalized company name

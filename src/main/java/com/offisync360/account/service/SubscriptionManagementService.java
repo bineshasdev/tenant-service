@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,7 +55,7 @@ public class SubscriptionManagementService {
                 .findActiveSubscriptionByTenantId(tenantId);
         
         if (existingSubscription.isPresent()) {
-            throw new BusinessValidationException("Tenant already has an active subscription");
+            throw new BusinessValidationException("Tenant already has an active subscription. Cancel the existing subscription first.");
         }
         
         LocalDateTime startDate = LocalDateTime.now();
@@ -65,7 +66,7 @@ public class SubscriptionManagementService {
         Subscription subscription = Subscription.builder()
                 .tenant(tenant)
                 .plan(plan)
-                .status(startTrial ? Subscription.SubscriptionStatus.TRIAL : Subscription.SubscriptionStatus.ACTIVE)
+                .status(Subscription.SubscriptionStatus.ACTIVE)
                 .billingCycle(billingCycle)
                 .currentPrice(calculatePrice(plan, billingCycle))
                 .startDate(startDate)
@@ -76,10 +77,7 @@ public class SubscriptionManagementService {
                 .build();
         
         subscriptionRepository.save(subscription);
-        
-        // Update tenant's subscription plan
-        tenant.setSubscriptionPlan(plan);
-        tenantRepository.save(tenant);
+          
         
         // Log audit event
         auditService.logAuditEvent("SUBSCRIPTION", subscription.getId().toString(), "CREATE", 
@@ -139,9 +137,7 @@ public class SubscriptionManagementService {
         
         subscriptionRepository.save(currentSubscription);
         subscriptionRepository.save(newSubscription);
-        
-        // Update tenant's subscription plan
-        tenant.setSubscriptionPlan(newPlan);
+         
         tenantRepository.save(tenant);
         
         // Log audit event
@@ -194,7 +190,7 @@ public class SubscriptionManagementService {
         
         // Get current usage metrics
         List<UsageMetrics> currentMetrics = usageMetricsRepository
-                .findByTenantIdAndMetricTypeOrderByMetricDateDesc(tenantId, UsageMetrics.MetricType.USERS.getValue());
+                    .findByTenantIdAndMetricTypeOrderByMetricDateDesc(tenantId, UsageMetrics.MetricType.USERS.getValue());
         
         UsageMetrics latestUsage = currentMetrics.isEmpty() ? null : currentMetrics.get(0);
         
@@ -248,7 +244,7 @@ public class SubscriptionManagementService {
                 
                 // Send trial ended notification
                 try {
-                    emailNotificationService.sendTrialEndedNotification(subscription.getTenant());
+                  //  emailNotificationService.sendTrialEndedNotification(subscription.getTenant().getId().toString());
                 } catch (Exception e) {
                     log.warn("Failed to send trial ended notification: {}", e.getMessage());
                 }

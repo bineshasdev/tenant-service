@@ -1,9 +1,9 @@
 # application-dev.yml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/tenant-service-db
+    url: jdbc:postgresql://localhost:5434/tenant-service-db
     username: root
-    password: root
+    password: Welcome@123
     driver-class-name: org.postgresql.Driver
   jpa: 
     hibernate:
@@ -17,6 +17,8 @@ spring:
           issuer-uri: http://localhost:9080/realms/master
   cloud:
     config:
+      enabled: false
+    consul:
       enabled: false
 springdoc:
   api-docs:

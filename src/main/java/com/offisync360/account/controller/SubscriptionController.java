@@ -47,13 +47,13 @@ public class SubscriptionController {
 
     @PutMapping("/plans/{id}")
     public ResponseEntity<SubscriptionPlan> updatePlan(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody SubscriptionPlan plan) {
         return ResponseEntity.of(planService.updatePlan(id, plan));
     }
 
     // Tenant subscription management endpoints
-    @RateLimited
+   
     @PostMapping("/{tenantId}/create")
     public ResponseEntity<Subscription> createSubscription(
             @PathVariable String tenantId,
@@ -71,7 +71,7 @@ public class SubscriptionController {
         return ResponseEntity.ok(subscription);
     }
 
-    @RateLimited
+   
     @PutMapping("/{tenantId}/change")
     public ResponseEntity<Subscription> changeSubscription(
             @PathVariable String tenantId,
@@ -87,7 +87,7 @@ public class SubscriptionController {
         return ResponseEntity.ok(subscription);
     }
 
-    @RateLimited
+  
     @PostMapping("/{tenantId}/cancel")
     public ResponseEntity<String> cancelSubscription(
             @PathVariable String tenantId,

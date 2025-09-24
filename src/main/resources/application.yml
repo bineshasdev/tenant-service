@@ -3,7 +3,7 @@ spring:
       active:
         - dev
     application:
-        name: account-service
+        name: tenant-service
     cloud:
         consul:
             host: localhost
@@ -50,6 +50,41 @@ springdoc:
 
 # Application Configuration
 app:
+  auth:
+    provider: KEYCLOAK  # Options: KEYCLOAK, AWS_COGNITO, AUTH0, SPRING_AUTH_SERVER
+  tenant:
+    default-settings:
+      access-token-lifespan: 300
+      refresh-token-lifespan: 1800
+      sso-session-idle-timeout: 1800
+      sso-session-max-lifespan: 36000
+      allow-email-as-username: true
+      email-verification-required: true
+      registration-allowed: false
+      remember-me: true
+      minimum-password-length: 8
+      require-uppercase: true
+      require-lowercase: true
+      require-numbers: true
+      require-special-chars: false
+      password-history-count: 3
+      max-password-age: 90
+      brute-force-detection: true
+      max-failure-wait-seconds: 900
+      wait-increment-seconds: 60
+      max-delta-time-seconds: 43200
+      failure-factor: 30
+      min-quick-login-wait-seconds: 60
+      max-quick-login-wait-seconds: 900
+      otp-enabled: false
+      otp-type: TOTP
+      otp-digits: 6
+      otp-period: 30
+      otp-counter: 0
+      otp-algorithm: 1
+      google-login-enabled: false
+      facebook-login-enabled: false
+      microsoft-login-enabled: false
   client-ids:
    api: ae081f7c-f41f-431a-a797-c8ab62fe38c8
    ui: 44ab21a1-d07f-4d97-960b-2ef6ba935ded   

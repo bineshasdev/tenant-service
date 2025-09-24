@@ -7,6 +7,7 @@ import com.offisync360.account.model.TenantConfig;
 import com.offisync360.account.repository.TenantRepository;
  
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class TenantConfiguration {
@@ -17,9 +18,9 @@ public class TenantConfiguration {
         this.repository = repository;
     }
 
-    @Cacheable(value = "tenantConfigs", key = "#tenant")
-    public Optional<TenantConfig> getConfig(String tenant) {
-        return repository.findConfigById(tenant);
+        @Cacheable(value = "tenantConfigs", key = "#tenant")
+        public Optional<TenantConfig> getConfig(String tenant) {
+            return repository.findConfigById(UUID.fromString(tenant));
     }
 
 }

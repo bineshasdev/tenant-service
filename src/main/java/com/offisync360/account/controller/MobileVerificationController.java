@@ -22,9 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 public class MobileVerificationController {
 
     private final MobileValidationService mobileValidationService;
-
-    @RateLimited
-    @PostMapping("/verify-mobile")
+ 
+    
     public ResponseEntity<MobileVerificationResponse> verifyMobile(
             @Valid @RequestBody MobileVerificationRequest request) {
         
@@ -50,7 +49,7 @@ public class MobileVerificationController {
         }
     }
 
-    @RateLimited
+   
     @PostMapping("/resend-otp")
     public ResponseEntity<MobileVerificationResponse> resendOTP(
             @Valid @RequestBody MobileVerificationRequest request) {

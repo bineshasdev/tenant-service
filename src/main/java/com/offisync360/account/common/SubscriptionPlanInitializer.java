@@ -16,14 +16,7 @@ public class SubscriptionPlanInitializer {
 
     @PostConstruct
     public void init() {
-        if (subscriptionPlanRepository.count() == 0) {
-           List<SubscriptionPlan> plans = List.of(
-            SubscriptionPlan.free(),
-            SubscriptionPlan.basic(),
-            SubscriptionPlan.pro()
-            );
-            subscriptionPlanRepository.saveAll(plans);
-        }
+        
     }
  
 }

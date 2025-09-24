@@ -1,12 +1,13 @@
 package com.offisync360.account.dto;
 
-import com.offisync360.account.model.SubscriptionPlan;
+import java.util.UUID;
+ 
 
 import lombok.Data;
 
 @Data
 public class SubscriptionUpdateRequest {
 
-    private SubscriptionPlan newPlan;
+    private UUID newPlan;
     private String subscriptionCode;
 }

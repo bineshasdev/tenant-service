@@ -41,7 +41,7 @@ public class UserController {
     /**
      * Creates a new user for a tenant
      */
-    @RateLimited
+    
     @PostMapping("/{tenantId}")
     public ResponseEntity<User> createUser(
             @PathVariable String tenantId,

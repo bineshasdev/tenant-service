@@ -12,8 +12,7 @@ import com.offisync360.account.dto.SubscriptionUpdateRequest;
 import com.offisync360.account.dto.TenantSignupRequest;
 import com.offisync360.account.dto.TenantSignupResponse;
 import com.offisync360.account.model.Tenant;
-import com.offisync360.account.service.TenantService;
-import com.offisync360.account.service.TenantSignupService;
+import com.offisync360.account.service.TenantService; 
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -21,31 +20,29 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("/api/account")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Slf4j
 public class AccountController {
-
-    private final TenantSignupService tenantSignupService;
+ 
     private final TenantService tenantService;
 
-    @RateLimited
-    @PostMapping("/signup") 
+  
+    @PostMapping("/account/signup") 
     public ResponseEntity<TenantSignupResponse> signupTenant(
-            @Valid @RequestBody TenantSignupRequest request,
-            HttpServletRequest httpRequest) {
+            @Valid @RequestBody TenantSignupRequest request ) {
         
         log.info("Tenant signup request received for company: {}", request.getCompanyName());
         
-        TenantSignupResponse response = tenantSignupService.signupTenant(request, httpRequest);
+        TenantSignupResponse response = tenantService.registerTenant(request);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{tenantId}/subscription")
-    public ResponseEntity<Tenant> updateSubscription(
+    @PostMapping("/account/{tenantId}/subscription")
+    public ResponseEntity<String> updateSubscription(
             @PathVariable String tenantId,
             @RequestBody SubscriptionUpdateRequest request) {
-        Tenant updatedTenant = tenantService.updateSubscription(tenantId, request.getNewPlan());
-        return ResponseEntity.ok(updatedTenant);
+         tenantService.updateSubscription(tenantId, request.getNewPlan());
+        return ResponseEntity.ok("Subscription updated successfully");
     }
 }

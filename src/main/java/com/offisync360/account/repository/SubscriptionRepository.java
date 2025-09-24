@@ -3,6 +3,7 @@ package com.offisync360.account.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -13,7 +14,7 @@ import com.offisync360.account.model.Subscription;
 import com.offisync360.account.model.Tenant;
 
 @Repository
-public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
+public interface SubscriptionRepository extends JpaRepository<Subscription, UUID> {
     
     Optional<Subscription> findByTenantAndStatus(Tenant tenant, Subscription.SubscriptionStatus status);
     

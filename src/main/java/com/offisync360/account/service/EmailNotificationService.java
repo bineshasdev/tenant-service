@@ -2,7 +2,9 @@ package com.offisync360.account.service;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -18,6 +20,7 @@ import com.offisync360.account.repository.EmailNotificationRepository;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import java.io.UnsupportedEncodingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,7 +54,7 @@ public class EmailNotificationService {
         variables.put("baseUrl", baseUrl);
         
         sendEmail(
-            tenant.getId(),
+            tenant.getId().toString(),
             null,
             tenant.getAdminEmail(),
             "SIGNUP_STARTED",
@@ -74,7 +77,7 @@ public class EmailNotificationService {
         variables.put("baseUrl", baseUrl);
         
         sendEmail(
-            tenant.getId(),
+            tenant.getId().toString(),
             null,
             tenant.getAdminEmail(),
             "SIGNUP_COMPLETED",
@@ -160,7 +163,7 @@ public class EmailNotificationService {
             // Create email notification record
             EmailNotification notification = EmailNotification.builder()
                     .tenantId(tenantId)
-                    .userId(userId)
+                    .userId(userId != null ? UUID.fromString(userId) : null)
                     .emailType(emailType)
                     .recipientEmail(recipientEmail)
                     .subject(subject)
@@ -194,17 +197,15 @@ public class EmailNotificationService {
             
             log.info("Email sent successfully to {} with type {}", recipientEmail, emailType);
             
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             log.error("Failed to send email to {}: {}", recipientEmail, e.getMessage());
             
-            // Update notification status
-            EmailNotification notification = emailNotificationRepository
-                    .findByTenantIdAndEmailTypeAndRecipientEmailOrderByCreatedAtDesc(tenantId, emailType, recipientEmail)
-                    .stream()
-                    .findFirst()
-                    .orElse(null);
+            // Update notification status - find the most recent notification for this tenant
+            List<EmailNotification> notifications = emailNotificationRepository
+                    .findByTenantIdOrderByCreatedAtDesc(tenantId);
             
-            if (notification != null) {
+            if (!notifications.isEmpty()) {
+                EmailNotification notification = notifications.get(0);
                 notification.setStatus("FAILED");
                 notification.setErrorMessage(e.getMessage());
                 emailNotificationRepository.save(notification);
@@ -217,14 +218,14 @@ public class EmailNotificationService {
     /**
      * Gets email notification history for a tenant
      */
-    public java.util.List<EmailNotification> getEmailHistory(String tenantId) {
+    public List<EmailNotification> getEmailHistory(String tenantId) {
         return emailNotificationRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
     }
     
     /**
      * Gets failed email notifications for retry
      */
-    public java.util.List<EmailNotification> getFailedEmails() {
+    public List<EmailNotification> getFailedEmails() {
         return emailNotificationRepository.findByStatusOrderByCreatedAtDesc("FAILED");
     }
     
@@ -232,7 +233,7 @@ public class EmailNotificationService {
      * Retries sending a failed email
      */
     @Transactional
-    public void retryFailedEmail(Long notificationId) {
+    public void retryFailedEmail(UUID notificationId) {
         EmailNotification notification = emailNotificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("Email notification not found"));
         

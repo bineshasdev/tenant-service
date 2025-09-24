@@ -1,6 +1,7 @@
 package com.offisync360.account.model;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,13 +24,13 @@ public class EmailNotification {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private UUID id;
     
     @Column(name = "tenant_id")
     private String tenantId;
     
     @Column(name = "user_id")
-    private String userId;
+    private UUID userId;
     
     @Column(name = "email_type", nullable = false)
     private String emailType; // SIGNUP_STARTED, SIGNUP_COMPLETED, WELCOME, etc.

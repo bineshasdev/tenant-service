@@ -1,6 +1,7 @@
 package com.offisync360.account.controller;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -97,9 +98,9 @@ public class AdminController {
      * Retry a failed email
      */
     @PostMapping("/emails/{emailId}/retry")
-    public ResponseEntity<String> retryFailedEmail(@PathVariable Long emailId) {
+    public ResponseEntity<String> retryFailedEmail(@PathVariable String emailId) {
         try {
-            emailNotificationService.retryFailedEmail(emailId);
+            emailNotificationService.retryFailedEmail(UUID.fromString(emailId));
             return ResponseEntity.ok("Email retry initiated");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Failed to retry email: " + e.getMessage());

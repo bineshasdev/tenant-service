@@ -2,6 +2,7 @@ package com.offisync360.account.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -23,8 +24,8 @@ public class SubscriptionPlanService {
         return subscriptionPlanRepository.save(plan);
     }
 
-    public Optional<SubscriptionPlan> updatePlan(Long id, SubscriptionPlan planUpdates) {
-        return subscriptionPlanRepository.findById(id).map(existing -> { 
+    public Optional<SubscriptionPlan> updatePlan(String id, SubscriptionPlan planUpdates) {
+        return subscriptionPlanRepository.findById(UUID.fromString(id)).map(existing -> { 
             if (planUpdates.getName() != null) existing.setName(planUpdates.getName());
             if (planUpdates.getMaxUsers() != null) existing.setMaxUsers(planUpdates.getMaxUsers());
             if (planUpdates.getMonthlyPrice() != null) existing.setMonthlyPrice(planUpdates.getMonthlyPrice());

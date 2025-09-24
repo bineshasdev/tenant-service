@@ -8,9 +8,10 @@ import com.offisync360.account.model.SubscriptionPlan;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface SubscriptionPlanRepository extends JpaRepository<SubscriptionPlan, Long> {
+public interface SubscriptionPlanRepository extends JpaRepository<SubscriptionPlan, UUID> {
 
     // Find plan by name
     Optional<SubscriptionPlan> findByName(String name);

@@ -1,9 +1,11 @@
 package com.offisync360.account.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
@@ -15,12 +17,15 @@ import com.offisync360.account.common.properties.AppProperties;
 import com.offisync360.account.dto.TenantSignupRequest;
 import com.offisync360.account.dto.TenantSignupResponse;
 import com.offisync360.account.exception.BusinessValidationException;
+import com.offisync360.account.model.Subscription;
 import com.offisync360.account.model.SubscriptionPlan;
 import com.offisync360.account.model.Tenant;
-import com.offisync360.account.model.TenantConfig;
+import com.offisync360.account.model.TenantSettings;
 import com.offisync360.account.repository.SubscriptionPlanRepository;
-import com.offisync360.account.repository.TenantConfigRepository;
+import com.offisync360.account.repository.SubscriptionRepository;
 import com.offisync360.account.repository.TenantRepository;
+import com.offisync360.account.service.auth.AuthenticationProvider;
+import com.offisync360.account.service.auth.AuthenticationProviderFactory;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +33,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class TenantService {
-
-    private final KeycloakAdminClient keycloakAdminClient;
 
     private final TenantRepository tenantRepository;
 
@@ -41,92 +44,151 @@ public class TenantService {
 
     private final TenantIdService tenantIdService;
 
-    private final TenantConfigRepository tenantConfigRepository;
-
     private final SubscriptionPlanRepository subscriptionPlanRepository;
+
+    private final SubscriptionRepository subscriptionRepository;
+    
+    private final AuthenticationProviderFactory authProviderFactory;
 
     private static final List<String> RESERVED_TENANT_IDS = List.of(
     "admin", "system", "master", "keycloak", "auth", "api");
 
     @Transactional
-    public TenantSignupResponse signupTenant(TenantSignupRequest request) {
+    public TenantSignupResponse registerTenant(TenantSignupRequest request) {
         
         
         var companyName = request.getCompanyName();
+        //Generate tenant id using tenantIdService and ensure it is unique from company name
         String realmName = tenantIdService.generateTenantId(companyName);
-        realmName = tenantIdService.ensureUniqueTenantId(realmName, keycloakAdminClient::realmExists);
+
+        // Get tenant settings (you can load from database or use defaults)
+        TenantSettings settings = TenantSettings.getDefaultSettings();
+        
+        // Get authentication provider
+        AuthenticationProvider authProvider = authProviderFactory.getDefaultProvider();
+        
+        //Ensure tenant id is unique in authentication provider
+        realmName = tenantIdService.ensureUniqueTenantId(realmName, authProvider::realmExists);
         validateSignupRequest(request, realmName);
        
-        String uiClientId = appProperties.getClientIds().getUi();
-        String apiClientId = appProperties.getClientIds().getApi();
-        String adminPassword = passwordGenerator.generateStrongPassword();
+        String uiClientId = appProperties.getClientIds().getUi(); // client id for public client like ui
+        String apiClientId = appProperties.getClientIds().getApi(); // client id for api client or backend client
+        String adminPassword = passwordGenerator.generateStrongPassword(); // password for admin user
 
         Tenant tenant = new Tenant();
-        tenant.setId(realmName);
+        tenant.setId(UUID.randomUUID().toString());
         tenant.setDisplayName(request.getDisplayName());
         tenant.setAdminEmail(request.getAdminEmail());
-        tenant.setRealmName(realmName);
-        tenant.setCreatedAt(LocalDateTime.now());
-        tenant.setStartDateEffective(LocalDateTime.now());
-        tenant.setSubscriptionPlan(subscriptionPlanRepository.findByCode(SubscriptionPlan.basic().getCode()).orElse(null) );
+        tenant.setRealmName(realmName); // realm name for keycloak
+        tenant.setStartDateEffective(LocalDateTime.now()); 
         tenant.setLocale(request.getLocale());
         tenant.setCountry(request.getCountry());
         tenant.setPhone(request.getMobileNumber());
         tenant.setAdminTempPassword(adminPassword);
-
-        TenantConfig config = new TenantConfig();
-        config.setServerUrl(keycloakAdminClient.getServerUrl());
-        config.setApiClientId(apiClientId);
-        config.setUiClientId(uiClientId);
-
+        tenant.setClientId(apiClientId);
+        tenant.setPublicClientId(uiClientId);  
         tenantRepository.save(tenant);
-        config.setId(tenant.getId());
+
+
+        Subscription subscription = new Subscription();
+        subscription.setId(UUID.randomUUID());
+        subscription.setTenant(tenant);
+        // If no plan id in request, set to free plan
+        SubscriptionPlan plan;
+        if (request.getSubscriptionId() == null) {
+            plan = subscriptionPlanRepository.findByCode("FREE").orElse(null);
+        } else {
+            plan = subscriptionPlanRepository.findById(request.getSubscriptionId()).orElse(null);
+        }
         
-        tenantConfigRepository.save(config);
+        subscription.setPlan(plan); 
+        subscription.setStatus(Subscription.SubscriptionStatus.ACTIVE);
+        subscription.setBillingCycle(Subscription.BillingCycle.MONTHLY);
+        subscription.setCurrentPrice(plan.getMonthlyPrice() == null ? BigDecimal.ZERO : plan.getMonthlyPrice());
+        subscription.setStartDate(LocalDateTime.now());
+        subscription.setEndDate(LocalDateTime.now().plusYears(1)); 
+        subscription.setTrialEndDate(LocalDateTime.now().plusDays(14));
+        subscription.setAutoRenew(true);
+
+        subscriptionRepository.save(subscription);
+         
 
 
-        // 1. Create Keycloak realm
-        RealmRepresentation realm = keycloakAdminClient.createRealm(realmName, request.getDisplayName());
+        // 1. Create realm using authentication provider
+        RealmRepresentation realm = authProvider.createRealm(realmName, request.getDisplayName(), settings);
         
-         // 2. Create roles
-         keycloakAdminClient.createRealmRoles(realmName, List.of("user", "admin", "guest"));
+        // 2. Create roles using authentication provider
+        authProvider.createRealmRoles(realmName, List.of("user", "admin", "guest"), settings);
 
-        // 3. Create admin user
-       
-        UserRepresentation adminUser = keycloakAdminClient.createAdminUser(
+        // 3. Create admin user using authentication provider
+        UserRepresentation adminUser = authProvider.createAdminUser(
                 realmName,
                 request.getAdminEmail(),
                 adminPassword,
                 request.getAdminFirstName(),
-                request.getAdminLastName());
+                request.getAdminLastName(),
+                settings);
 
-        // 4. Create API client
-        ClientRepresentation apiClient = keycloakAdminClient.createClient(
+        // 4. Create API client using authentication provider
+        ClientRepresentation apiClient = authProvider.createClient(
                 realmName,
                 apiClientId,
                 "API client for " + request.getDisplayName(),
-                true);
+                true,
+                settings);
 
-        // 5. Create UI client
-        ClientRepresentation uiClient = keycloakAdminClient.createClient(
+        // 5. Create UI client using authentication provider
+        ClientRepresentation uiClient = authProvider.createClient(
                 realmName,
                 uiClientId,
                 "UI client for " + request.getDisplayName(),
-                false);
+                false,
+                settings);
 
         
-        config.setApiClientSecret(apiClient.getSecret());
-        config.setUiClientSecret(uiClient.getSecret());
-        tenantConfigRepository.save(config);
+        tenant.setClientSecret(apiClient.getSecret());
+        tenant.setPublicClientSecret(uiClient.getSecret());
+        tenantRepository.save(tenant);
 
         notificationService.sendSignupStartedNotification();
         return TenantSignupResponse.builder()
-                .tenantId(tenant.getId())
+                .tenantId(tenant.getId().toString())
                 .realmName(realmName) 
                 .adminEmail(request.getAdminEmail())
                 .apiClientId(apiClient.getClientId())
                 .uiClientId(uiClient.getClientId())
                 .build();
+    }
+ 
+
+    @Transactional
+    public void updateSubscription(String tenantId, UUID planId) {
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new RuntimeException("Tenant not found"));
+        // Make existing subscription inactive (if any active/trial subscription exists)
+        subscriptionRepository.findActiveSubscriptionByTenantId(tenantId).ifPresent(existingSub -> {
+            existingSub.setStatus(Subscription.SubscriptionStatus.CANCELLED);
+            subscriptionRepository.save(existingSub);
+        });
+
+        // Set the new subscription as ACTIVE
+        // Create new subscription based on the plan id
+        SubscriptionPlan plan = subscriptionPlanRepository.findById(planId)
+                .orElseThrow(() -> new RuntimeException("Subscription plan not found"));
+
+        Subscription newSubscription = new Subscription();
+        newSubscription.setTenant(tenant);
+        newSubscription.setPlan(plan);
+        newSubscription.setStatus(Subscription.SubscriptionStatus.ACTIVE);
+        newSubscription.setBillingCycle(Subscription.BillingCycle.MONTHLY);
+        newSubscription.setCurrentPrice(plan.getMonthlyPrice());
+        newSubscription.setStartDate(LocalDateTime.now());
+        newSubscription.setEndDate(LocalDateTime.now().plusYears(1));
+        newSubscription.setTrialEndDate(LocalDateTime.now().plusDays(14));
+        newSubscription.setAutoRenew(true);
+
+        subscriptionRepository.save(newSubscription);
+ 
     }
 
     private void validateSignupRequest(TenantSignupRequest request, String tenantId) {
@@ -135,8 +197,8 @@ public class TenantService {
         if (RESERVED_TENANT_IDS.contains(request.getCompanyName().toLowerCase())) {
             errors.add("This tenant ID is reserved");
         }
-        if (tenantRepository.existsById(tenantId)) {
-            errors.add("Tenant ID '" + tenantId + "' is already taken");
+        if (tenantRepository.existsByRealmName(tenantId)) {
+                errors.add("Tenant ID '" + tenantId + "' is already taken");
         }
 
         if (!isValidEmailDomain(request.getAdminEmail())) {
@@ -184,11 +246,5 @@ public class TenantService {
         return Arrays.stream(blockedTerms)
                 .anyMatch(lowercaseText::contains);
     }
-    public Tenant updateSubscription(String tenantId, SubscriptionPlan newPlan) {
-        Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new RuntimeException("Tenant not found"));
-        
-        tenant.setSubscriptionPlan(newPlan);
-        return tenantRepository.save(tenant);
-    }
+   
 }

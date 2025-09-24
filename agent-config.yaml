@@ -4,7 +4,7 @@ metrics:
   configs:
   - name: default
     scrape_configs:
-      - job_name: 'account-service'
+      - job_name: 'tenant-service'
         static_configs:
           - targets: ['localhost:8080']
     remote_write:
@@ -18,9 +18,9 @@ logs:
     positions:
       filename: /tmp/positions.yaml
     scrape_configs:
-      - job_name: account-service
+      - job_name: tenant-service
         static_configs:
           - targets: [localhost]
             labels:
-              job: account-service
-              __path__: /var/log/account-service/*.log
+              job: tenant-service
+              __path__: /var/log/tenant-service/*.log

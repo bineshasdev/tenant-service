@@ -1,6 +1,7 @@
 package com.offisync360.account.model;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,12 +25,15 @@ import lombok.NoArgsConstructor;
 public class UsageMetrics {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private UUID id;
     
     @ManyToOne
     @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
+    
+    @Column(name = "user_id")
+    private UUID userId;
     
     @Column(name = "metric_date", nullable = false)
     private LocalDateTime metricDate;

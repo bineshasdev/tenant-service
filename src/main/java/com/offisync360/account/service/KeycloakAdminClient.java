@@ -6,10 +6,8 @@ import java.util.UUID;
 
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
-import org.keycloak.admin.client.resource.RealmResource;
-import org.keycloak.representations.account.ConsentRepresentation;
-import org.keycloak.representations.idm.ClientRepresentation;
-import org.keycloak.representations.idm.ClientScopeRepresentation;
+import org.keycloak.admin.client.resource.RealmResource; 
+import org.keycloak.representations.idm.ClientRepresentation; 
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
@@ -147,5 +145,15 @@ public class KeycloakAdminClient {
             return false;
         }
       
+    }
+
+    public int getUserCount(String realmName) {
+        Keycloak keycloak = getAdminKeycloakInstance();
+        try {
+            return keycloak.realm(realmName).users().count();
+        } catch (Exception e) {
+            log.error("Error getting user count for realm {}: {}", realmName, e.getMessage());
+            return 0;
+        }
     }
 }

@@ -3,7 +3,7 @@
 
 -- Create subscription_plans table
 CREATE TABLE subscription_plans (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(100) NOT NULL,
     description TEXT,
@@ -19,7 +19,8 @@ CREATE TABLE subscription_plans (
 
 -- Create tenants table
 CREATE TABLE tenants (
-    id VARCHAR(50) PRIMARY KEY,
+    id VARCHAR(100) PRIMARY KEY,
+    version BIGINT DEFAULT 0,
     display_name VARCHAR(100) NOT NULL,
     realm_name VARCHAR(50) NOT NULL UNIQUE,
     domain VARCHAR(100),
@@ -30,30 +31,42 @@ CREATE TABLE tenants (
     pincode VARCHAR(10),
     locale VARCHAR(10) DEFAULT 'en-GB',
     currency VARCHAR(3) DEFAULT 'INR',
-    admin_temp_password VARCHAR(255),
-    subscription_plan_id BIGINT REFERENCES subscription_plans(id),
-    status VARCHAR(20) DEFAULT 'ACTIVE',
+    admin_temp_password VARCHAR(255), 
+    client_id VARCHAR(255),
+    client_secret VARCHAR(255),
+    public_client_id VARCHAR(255),
+    public_client_secret VARCHAR(255), 
+    status VARCHAR(20) DEFAULT 'TRIAL',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     start_date_effective TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     end_date_effective TIMESTAMP
 );
+ 
 
--- Create tenant_configs table
-CREATE TABLE tenant_configs (
-    id VARCHAR(50) PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
-    server_url VARCHAR(255) NOT NULL,
-    api_client_id VARCHAR(255) NOT NULL,
-    ui_client_id VARCHAR(255) NOT NULL,
-    api_client_secret VARCHAR(255),
-    ui_client_secret VARCHAR(255),
+-- Create subscriptions table for subscription management
+CREATE TABLE subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id VARCHAR(100) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    subscription_plan_id UUID NOT NULL REFERENCES subscription_plans(id),
+    status VARCHAR(20) NOT NULL, -- TRIAL, ACTIVE, PAST_DUE, CANCELLED, EXPIRED, SUSPENDED
+    billing_cycle VARCHAR(20) NOT NULL, -- MONTHLY, QUARTERLY, YEARLY
+    current_price DECIMAL(10,2),
+    start_date TIMESTAMP NOT NULL,
+    end_date TIMESTAMP,
+    next_billing_date TIMESTAMP,
+    trial_end_date TIMESTAMP,
+    cancelled_at TIMESTAMP,
+    cancellation_reason TEXT,
+    auto_renew BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create users table
 CREATE TABLE users (
-    id VARCHAR(50) PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
@@ -62,12 +75,43 @@ CREATE TABLE users (
     state VARCHAR(100),
     pincode VARCHAR(10),
     status VARCHAR(20) DEFAULT 'ACTIVE',
-    tenant_id VARCHAR(50) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    tenant_id VARCHAR(100) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     start_date_effective TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     end_date_effective TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+-- Create usage_metrics table for tracking usage
+CREATE TABLE usage_metrics (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id VARCHAR(100) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    metric_date TIMESTAMP NOT NULL,
+    metric_type VARCHAR(50) NOT NULL, -- USERS, STORAGE_GB, API_CALLS, etc.
+    current_usage BIGINT NOT NULL,
+    limit_value BIGINT,
+    percentage_used DOUBLE PRECISION,
+    is_over_limit BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create payments table to track tenant payments
+CREATE TABLE payments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id VARCHAR(100) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    subscription_id UUID REFERENCES subscriptions(id) ON DELETE SET NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL DEFAULT 'INR',
+    payment_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    payment_method VARCHAR(50), -- e.g., CARD, UPI, NETBANKING, PAYPAL
+    transaction_id VARCHAR(100),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING', -- PENDING, SUCCESS, FAILED, REFUNDED
+    remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
 
 -- Create audit_logs table for audit trail
 CREATE TABLE audit_logs (
@@ -88,8 +132,8 @@ CREATE TABLE mobile_verifications (
     id BIGSERIAL PRIMARY KEY,
     phone_number VARCHAR(20) NOT NULL,
     otp_code VARCHAR(10) NOT NULL,
-    tenant_id VARCHAR(50) REFERENCES tenants(id) ON DELETE CASCADE,
-    user_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
+    tenant_id VARCHAR(100) REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, VERIFIED, EXPIRED, FAILED
     attempts INTEGER DEFAULT 0,
     expires_at TIMESTAMP NOT NULL,
@@ -99,9 +143,9 @@ CREATE TABLE mobile_verifications (
 
 -- Create email_notifications table for tracking sent emails
 CREATE TABLE email_notifications (
-    id BIGSERIAL PRIMARY KEY,
-    tenant_id VARCHAR(50) REFERENCES tenants(id) ON DELETE CASCADE,
-    user_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id VARCHAR(100) REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     email_type VARCHAR(50) NOT NULL, -- SIGNUP_STARTED, SIGNUP_COMPLETED, WELCOME, etc.
     recipient_email VARCHAR(255) NOT NULL,
     subject VARCHAR(255) NOT NULL,
@@ -112,38 +156,6 @@ CREATE TABLE email_notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create subscriptions table for subscription management
-CREATE TABLE subscriptions (
-    id BIGSERIAL PRIMARY KEY,
-    tenant_id VARCHAR(50) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    subscription_plan_id BIGINT NOT NULL REFERENCES subscription_plans(id),
-    status VARCHAR(20) NOT NULL, -- TRIAL, ACTIVE, PAST_DUE, CANCELLED, EXPIRED, SUSPENDED
-    billing_cycle VARCHAR(20) NOT NULL, -- MONTHLY, QUARTERLY, YEARLY
-    current_price DECIMAL(10,2),
-    start_date TIMESTAMP NOT NULL,
-    end_date TIMESTAMP,
-    next_billing_date TIMESTAMP,
-    trial_end_date TIMESTAMP,
-    cancelled_at TIMESTAMP,
-    cancellation_reason TEXT,
-    auto_renew BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create usage_metrics table for tracking usage
-CREATE TABLE usage_metrics (
-    id BIGSERIAL PRIMARY KEY,
-    tenant_id VARCHAR(50) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    user_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
-    metric_date TIMESTAMP NOT NULL,
-    metric_type VARCHAR(50) NOT NULL, -- USERS, STORAGE_GB, API_CALLS, etc.
-    current_usage BIGINT NOT NULL,
-    limit_value BIGINT,
-    percentage_used DOUBLE PRECISION,
-    is_over_limit BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
 -- Create rate_limit_entries table for rate limiting
 CREATE TABLE rate_limit_entries (
@@ -178,25 +190,19 @@ CREATE INDEX idx_usage_metrics_tenant ON usage_metrics(tenant_id);
 CREATE INDEX idx_usage_metrics_type ON usage_metrics(metric_type);
 CREATE INDEX idx_usage_metrics_date ON usage_metrics(metric_date);
 CREATE INDEX idx_rate_limit_identifier ON rate_limit_entries(identifier, endpoint);
+CREATE INDEX idx_payments_tenant ON payments(tenant_id);
+CREATE INDEX idx_payments_subscription ON payments(subscription_id);
+CREATE INDEX idx_payments_status ON payments(status);
+CREATE INDEX idx_payments_date ON payments(payment_date);
+CREATE INDEX idx_subscription_plans_code ON subscription_plans(code);
+CREATE INDEX idx_subscription_plans_active ON subscription_plans(is_active);
+CREATE INDEX idx_usage_metrics_user ON usage_metrics(user_id);
+CREATE INDEX idx_usage_metrics_created_at ON usage_metrics(created_at);
 
 -- Insert default subscription plans
 INSERT INTO subscription_plans (code, name, description, max_users, max_storage_gb, price_monthly, price_yearly, features) VALUES
-('FREE', 'Free Plan', 'Basic plan with limited features', 5, 1, 0.00, 0.00, '{"features": ["basic_support", "standard_storage"]}'),
-('BASIC', 'Basic Plan', 'Standard plan for small teams', 25, 10, 29.99, 299.99, '{"features": ["priority_support", "advanced_storage", "api_access"]}'),
-('PROFESSIONAL', 'Professional Plan', 'Advanced plan for growing businesses', 100, 50, 99.99, 999.99, '{"features": ["24x7_support", "unlimited_storage", "api_access", "custom_integrations"]}'),
-('ENTERPRISE', 'Enterprise Plan', 'Full-featured plan for large organizations', -1, -1, 299.99, 2999.99, '{"features": ["dedicated_support", "unlimited_storage", "api_access", "custom_integrations", "sso", "audit_logs"]}');
-
--- Create triggers for updated_at timestamps
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_tenants_updated_at BEFORE UPDATE ON tenants FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_tenant_configs_updated_at BEFORE UPDATE ON tenant_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_rate_limit_entries_updated_at BEFORE UPDATE ON rate_limit_entries FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+('FREE', 'Free Plan', 'Basic plan with limited features', 5, 1, 0.00, 0.00, '{"features": ["basic_support", "standard_storage"]}'::jsonb),
+('BASIC', 'Basic Plan', 'Standard plan for small teams', 25, 10, 29.99, 299.99, '{"features": ["priority_support", "advanced_storage", "api_access"]}'::jsonb),
+('PROFESSIONAL', 'Professional Plan', 'Advanced plan for growing businesses', 100, 50, 99.99, 999.99, '{"features": ["24x7_support", "unlimited_storage", "api_access", "custom_integrations"]}'::jsonb),
+('ENTERPRISE', 'Enterprise Plan', 'Full-featured plan for large organizations', -1, -1, 299.99, 2999.99, '{"features": ["dedicated_support", "unlimited_storage", "api_access", "custom_integrations", "sso", "audit_logs"]}'::jsonb);
+ 

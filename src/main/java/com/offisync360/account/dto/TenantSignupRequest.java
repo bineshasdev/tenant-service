@@ -1,6 +1,7 @@
 package com.offisync360.account.dto;
 
 import java.util.List;
+import java.util.UUID;
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
@@ -49,4 +50,7 @@ public class TenantSignupRequest {
     private String country = "IN";
 
     private String locale = "en-GB";
+
+    private UUID subscriptionId;
+
 }

@@ -2,6 +2,7 @@ package com.offisync360.account.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,11 +14,11 @@ import org.springframework.stereotype.Repository;
 import com.offisync360.account.model.EmailNotification;
 
 @Repository
-public interface EmailNotificationRepository extends JpaRepository<EmailNotification, Long> {
+public interface EmailNotificationRepository extends JpaRepository<EmailNotification, UUID> {
     
     List<EmailNotification> findByTenantIdOrderByCreatedAtDesc(String tenantId);
     
-    List<EmailNotification> findByUserIdOrderByCreatedAtDesc(String userId);
+    List<EmailNotification> findByUserIdOrderByCreatedAtDesc(UUID userId);
     
     List<EmailNotification> findByStatusOrderByCreatedAtDesc(String status);
     

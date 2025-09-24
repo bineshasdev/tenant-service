@@ -2,6 +2,7 @@ package com.offisync360.account.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,9 +27,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Subscription {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id 
+    private UUID id;
     
     @ManyToOne
     @JoinColumn(name = "tenant_id", nullable = false)
@@ -43,10 +43,10 @@ public class Subscription {
     private SubscriptionStatus status;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "billing_cycle", nullable = false)
     private BillingCycle billingCycle;
     
-    @Column(precision = 10, scale = 2)
+    @Column(name = "current_price", precision = 10, scale = 2)
     private BigDecimal currentPrice;
     
     @Column(name = "start_date", nullable = false)

@@ -3,21 +3,34 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15 
-    container_name: account-service-db
+    container_name: tenant-service-db
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: Welcome@123
-      POSTGRES_DB: account-service-db
+      POSTGRES_DB: tenant-service-db
+      # Development-specific settings
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
     ports:
-      - "5431:5432"
+      - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Optional: Mount init scripts for development
+      # - ./init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root"]
+      test: ["CMD-SHELL", "pg_isready -U root -d tenant-service-db"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     restart: unless-stopped
+    # Development-friendly settings
+    command: >
+      postgres 
+      -c log_statement=all
+      -c log_min_duration_statement=0
+      -c log_line_prefix='%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
 
 volumes:
   pgdata:

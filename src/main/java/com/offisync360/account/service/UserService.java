@@ -11,9 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.offisync360.account.dto.UserRegistrationRequest;
-import com.offisync360.account.exception.BusinessValidationException;
-import com.offisync360.account.exception.SubscriptionLimitExceededException;
-import com.offisync360.account.model.Subscription;
+import com.offisync360.account.exception.BusinessValidationException; 
 import com.offisync360.account.model.Tenant;
 import com.offisync360.account.model.UsageMetrics;
 import com.offisync360.account.model.User;
@@ -62,16 +60,14 @@ public class UserService {
         
         // Create user entity
         User user = User.builder()
-                .id(userId)
+                .id(UUID.fromString(userId))
                 .email(request.getEmail())
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
-                .phone(request.getPhone())
-                .country(request.getCountry())
                 .tenant(tenant)
                 .status(User.UserStatus.PENDING_VERIFICATION)
-                .role(request.getIsAdmin() ? User.UserRole.ADMIN : User.UserRole.USER)
-                .isAdmin(request.getIsAdmin())
+                .role(User.UserRole.USER)
+                .isAdmin(false)
                 .startDateEffective(LocalDateTime.now())
                 .build();
         
@@ -80,13 +76,13 @@ public class UserService {
         
         // Create user in Keycloak
         try {
-            keycloakAdmin.createUser(
+           /*   keycloakAdmin.createUser(
                     tenant.getRealmName(),
                     request.getEmail(),
                     request.getPassword(),
                     request.getFirstName(),
                     request.getLastName()
-            );
+            ); */
         } catch (Exception e) {
             log.error("Failed to create user in Keycloak: {}", e.getMessage());
             // Rollback user creation
@@ -122,7 +118,7 @@ public class UserService {
      */
     @Transactional
     public User updateUser(String userId, UserRegistrationRequest request, HttpServletRequest httpRequest) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new BusinessValidationException("User not found"));
         
         User oldUser = User.builder()
@@ -130,8 +126,6 @@ public class UserService {
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
-                .phone(user.getPhone())
-                .country(user.getCountry())
                 .status(user.getStatus())
                 .role(user.getRole())
                 .isAdmin(user.getIsAdmin())
@@ -140,8 +134,6 @@ public class UserService {
         // Update fields
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
-        user.setPhone(request.getPhone());
-        user.setCountry(request.getCountry());
         user.setUpdatedAt(LocalDateTime.now());
         
         // Save updated user
@@ -159,7 +151,7 @@ public class UserService {
      */
     @Transactional
     public void deactivateUser(String userId, String reason, HttpServletRequest httpRequest) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new BusinessValidationException("User not found"));
         
         user.setStatus(User.UserStatus.INACTIVE);
@@ -169,7 +161,7 @@ public class UserService {
         userRepository.save(user);
         
         // Update usage metrics
-        updateUserUsageMetrics(user.getTenant().getId());
+        //updateUserUsageMetrics(user.getTenant().getId());
         
         // Log audit event
         auditService.logAuditEvent("USER", userId, "DEACTIVATE", null, 
@@ -196,7 +188,7 @@ public class UserService {
      * Gets user by ID
      */
     public Optional<User> getUserById(String userId) {
-        return userRepository.findById(userId);
+        return userRepository.findById(UUID.fromString(userId));
     }
     
     /**
@@ -211,43 +203,14 @@ public class UserService {
      */
     @Transactional
     public void updateUserUsageMetrics(String tenantId) {
-        long currentUserCount = userRepository.countByTenantId(tenantId);
-        
-        // Get current subscription
-        Optional<Subscription> subscription = subscriptionRepository.findActiveSubscriptionByTenantId(tenantId);
-        if (subscription.isEmpty()) {
-            log.warn("No active subscription found for tenant: {}", tenantId);
-            return;
-        }
-        
-        long maxUsers = subscription.get().getPlan().getMaxUsers();
-        double percentageUsed = maxUsers > 0 ? (double) currentUserCount / maxUsers * 100 : 0;
-        boolean isOverLimit = currentUserCount > maxUsers;
-        
-        // Create usage metrics record
-        UsageMetrics metrics = UsageMetrics.builder()
-                .tenant(subscription.get().getTenant())
-                .metricDate(LocalDateTime.now())
-                .metricType(UsageMetrics.MetricType.USERS.getValue())
-                .currentUsage(currentUserCount)
-                .limitValue(maxUsers)
-                .percentageUsed(percentageUsed)
-                .isOverLimit(isOverLimit)
-                .build();
-        
-        usageMetricsRepository.save(metrics);
-        
-        log.info("Updated user usage metrics for tenant {}: {}/{} users", 
-                tenantId, currentUserCount, maxUsers);
+       
     }
     
     /**
      * Gets current user usage for a tenant
      */
     public UsageMetrics getCurrentUserUsage(String tenantId) {
-        return usageMetricsRepository
-                .findFirstByTenantIdAndMetricTypeOrderByMetricDateDesc(tenantId, UsageMetrics.MetricType.USERS.getValue())
-                .orElse(null);
+        return null;
     }
     
     /**
