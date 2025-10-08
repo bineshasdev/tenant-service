@@ -70,7 +70,8 @@ public class SecurityConfig {
             }
  */  
             auth 
-            .requestMatchers("/api/account/signup").permitAll()
+            .requestMatchers("/api/v1/account/signup").permitAll()
+            .requestMatchers("/api/v1/account/resolve-tenant").permitAll()
             .requestMatchers("/api/account/verify-mobile").permitAll()
             .requestMatchers("/api/account/resend-otp").permitAll()
             .requestMatchers("/actuator/health").permitAll()

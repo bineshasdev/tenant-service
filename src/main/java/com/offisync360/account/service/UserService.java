@@ -114,6 +114,46 @@ public class UserService {
     }
     
     /**
+     * Creates admin user after tenant signup
+     */
+    @Transactional
+    public User createUser(String tenantId, String email, String firstName, 
+                                         String lastName, User.UserRole role, String userId, String username) {
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new BusinessValidationException("Tenant not found"));
+        
+        // Check if admin user already exists
+        if (userRepository.findByEmailAndTenantId(email, tenantId).isPresent()) {
+            log.warn("Admin user already exists for tenant: {} with email: {}", tenantId, email);
+            return userRepository.findByEmailAndTenantId(email, tenantId).get();
+        }
+        
+        // Generate user ID (matches Keycloak user ID)
+        
+        // Create admin user entity
+        User adminUser = User.builder()
+                .id(UUID.fromString(userId))
+                .email(email)
+                .username(username)
+                .firstName(firstName)
+                .lastName(lastName)
+                .tenant(tenant)
+                .status(User.UserStatus.ACTIVE)
+                .role(role)
+                .isAdmin(role == User.UserRole.ADMIN)
+                .startDateEffective(LocalDateTime.now())
+                .build();
+        
+        // Save admin user
+        userRepository.save(adminUser);
+        
+        // Update usage metrics
+        updateUserUsageMetrics(tenantId);
+        
+        log.info("Admin user created successfully: {} for tenant: {}", userId, tenantId);
+        return adminUser;
+    }
+    /**
      * Updates user information
      */
     @Transactional
@@ -203,14 +243,39 @@ public class UserService {
      */
     @Transactional
     public void updateUserUsageMetrics(String tenantId) {
-       
+        try {
+            // Get current user count for the tenant
+            long userCount = userRepository.countByTenantId(tenantId);
+            
+            // Find or create usage metrics record
+            Optional<UsageMetrics> existingMetrics = usageMetricsRepository.findFirstByTenantIdAndMetricTypeOrderByMetricDateDesc(tenantId, UsageMetrics.MetricType.USERS.getValue());
+            
+            UsageMetrics metrics;
+            if (existingMetrics.isPresent()) {
+                metrics = existingMetrics.get();
+            } else {
+                metrics = new UsageMetrics();
+                metrics.setTenant(tenantRepository.findById(tenantId).orElse(null));
+                metrics.setCreatedAt(LocalDateTime.now());
+            }
+            
+            // Update user count
+            metrics.setCurrentUsage(userCount);
+            
+            
+            usageMetricsRepository.save(metrics);
+            
+            log.info("Updated user usage metrics for tenant: {}, user count: {}", tenantId, userCount);
+        } catch (Exception e) {
+            log.error("Failed to update user usage metrics for tenant: {}, error: {}", tenantId, e.getMessage());
+        }
     }
     
     /**
      * Gets current user usage for a tenant
      */
     public UsageMetrics getCurrentUserUsage(String tenantId) {
-        return null;
+        return usageMetricsRepository.findFirstByTenantIdAndMetricTypeOrderByMetricDateDesc(tenantId, UsageMetrics.MetricType.USERS.getValue()).orElse(null);
     }
     
     /**

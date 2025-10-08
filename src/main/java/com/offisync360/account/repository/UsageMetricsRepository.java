@@ -38,4 +38,7 @@ public interface UsageMetricsRepository extends JpaRepository<UsageMetrics, UUID
     Double getAverageUsageSince(@Param("tenantId") String tenantId, 
                                @Param("metricType") String metricType, 
                                @Param("startDate") LocalDateTime startDate);
+   
+    @Query("SELECT COUNT(um) FROM UsageMetrics um WHERE um.tenant.id = :tenantId AND um.metricType = :metricType")
+    Long countMetricsByTenant(@Param("tenantId") String tenantId,  @Param("metricType") String metricType );               
 }

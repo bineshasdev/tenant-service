@@ -53,4 +53,6 @@ public class TenantSignupRequest {
 
     private UUID subscriptionId;
 
+    private String adminPassword;
+
 }

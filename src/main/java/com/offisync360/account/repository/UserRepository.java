@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.offisync360.account.model.Tenant;
 import com.offisync360.account.model.User;
 
 @Repository
@@ -31,4 +32,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     long fastCountByTenant(@Param("tenantId") String tenantId);
     
     Optional<User> findByEmailAndTenantId(String email, String tenantId);
+
+    @Query("SELECT t FROM User u JOIN u.tenant t WHERE u.username = :usernameOrEmail OR u.email = :usernameOrEmail")
+    Optional<Tenant> findFirstTenantByUsernameOrEmail(@Param("usernameOrEmail") String usernameOrEmail);
 }

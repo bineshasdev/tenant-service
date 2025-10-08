@@ -2,7 +2,9 @@ package com.offisync360.account.model;
 
 import java.time.LocalDateTime; 
 import java.util.UUID;
- 
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -77,18 +79,21 @@ public class Tenant {
     private String currency;
 
     @Column(name = "admin_temp_password")
+    @JsonIgnore
     private String adminTempPassword;
  
     @Column(name = "client_id")
     private String clientId;
 
     @Column(name = "client_secret")
+    @JsonIgnore
     private String clientSecret;
 
     @Column(name = "public_client_id")
     private String publicClientId;
 
     @Column(name = "public_client_secret")
+    @JsonIgnore
     private String publicClientSecret;
 
     @Column(name = "status")

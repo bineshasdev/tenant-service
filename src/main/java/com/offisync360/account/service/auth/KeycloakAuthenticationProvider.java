@@ -3,6 +3,7 @@ package com.offisync360.account.service.auth;
 import com.offisync360.account.model.TenantSettings;
 import com.offisync360.account.service.KeycloakAdminClient;
 import org.keycloak.representations.idm.ClientRepresentation;
+import org.keycloak.representations.idm.RequiredActionProviderRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Component;
@@ -44,16 +45,31 @@ public class KeycloakAuthenticationProvider implements AuthenticationProvider {
         if (settings.getRememberMe() != null) {
             realm.setRememberMe(settings.getRememberMe());
         }
+        realm.setResetPasswordAllowed(true);
+        var updatePasswordAction = new RequiredActionProviderRepresentation();
+        updatePasswordAction.setEnabled(true);
+        updatePasswordAction.setName("update_password");
+        updatePasswordAction.setAlias("update_password");
+
+        realm.setRequiredActions(List.of(updatePasswordAction));
+        realm.setRequiredActions(List.of());
         
         return realm;
     }
     
     @Override
     public UserRepresentation createAdminUser(String realmName, String email, String password, 
-                                            String firstName, String lastName, TenantSettings settings) {
-        return keycloakAdminClient.createAdminUser(realmName, email, password, firstName, lastName);
+                                            String firstName, String lastName, TenantSettings settings, boolean resetPassword) {
+        return keycloakAdminClient.createUser(realmName, email, password, firstName, lastName, resetPassword, "admin");
     }
     
+    @Override
+    public UserRepresentation createUser(String realmName, String email, String password, String firstName,
+            String lastName, TenantSettings settings, boolean resetPassword) {
+         
+        return keycloakAdminClient.createUser(realmName, email, password, firstName, lastName, resetPassword, "user");
+    }
+
     @Override
     public ClientRepresentation createClient(String realmName, String clientId, String clientName, 
                                            boolean confidential, TenantSettings settings) {
@@ -78,5 +94,5 @@ public class KeycloakAuthenticationProvider implements AuthenticationProvider {
     @Override
     public String getProviderType() {
         return "KEYCLOAK";
-    }
+    } 
 }

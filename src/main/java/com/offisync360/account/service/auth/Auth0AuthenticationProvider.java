@@ -16,21 +16,7 @@ public class Auth0AuthenticationProvider implements AuthenticationProvider {
         // TODO: Implement Auth0 tenant creation
         throw new UnsupportedOperationException("Auth0 implementation not yet available");
     }
-    
-    @Override
-    public UserRepresentation createAdminUser(String realmName, String email, String password, 
-                                            String firstName, String lastName, TenantSettings settings) {
-        // TODO: Implement Auth0 user creation
-        throw new UnsupportedOperationException("Auth0 implementation not yet available");
-    }
-    
-    @Override
-    public ClientRepresentation createClient(String realmName, String clientId, String clientName, 
-                                           boolean confidential, TenantSettings settings) {
-        // TODO: Implement Auth0 application creation
-        throw new UnsupportedOperationException("Auth0 implementation not yet available");
-    }
-    
+     
     @Override
     public void createRealmRoles(String realmName, List<String> roleNames, TenantSettings settings) {
         // TODO: Implement Auth0 roles
@@ -52,5 +38,26 @@ public class Auth0AuthenticationProvider implements AuthenticationProvider {
     @Override
     public String getProviderType() {
         return "AUTH0";
+    }
+
+    @Override
+    public UserRepresentation createAdminUser(String realmName, String email, String password, String firstName,
+            String lastName, TenantSettings settings, boolean resetPassword) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'createAdminUser'");
+    }
+
+    @Override
+    public UserRepresentation createUser(String realmName, String email, String password, String firstName,
+            String lastName, TenantSettings settings, boolean resetPassword) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'createUser'");
+    }
+
+    @Override
+    public ClientRepresentation createClient(String realmName, String clientId, String clientName, boolean confidential,
+            TenantSettings settings) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'createClient'");
     }
 }

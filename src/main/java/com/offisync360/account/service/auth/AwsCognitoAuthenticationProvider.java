@@ -17,12 +17,7 @@ public class AwsCognitoAuthenticationProvider implements AuthenticationProvider 
         throw new UnsupportedOperationException("AWS Cognito implementation not yet available");
     }
     
-    @Override
-    public UserRepresentation createAdminUser(String realmName, String email, String password, 
-                                            String firstName, String lastName, TenantSettings settings) {
-        // TODO: Implement AWS Cognito user creation
-        throw new UnsupportedOperationException("AWS Cognito implementation not yet available");
-    }
+    
     
     @Override
     public ClientRepresentation createClient(String realmName, String clientId, String clientName, 
@@ -52,5 +47,23 @@ public class AwsCognitoAuthenticationProvider implements AuthenticationProvider 
     @Override
     public String getProviderType() {
         return "AWS_COGNITO";
+    }
+
+
+
+    @Override
+    public UserRepresentation createAdminUser(String realmName, String email, String password, String firstName,
+            String lastName, TenantSettings settings, boolean resetPassword) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'createAdminUser'");
+    }
+
+
+
+    @Override
+    public UserRepresentation createUser(String realmName, String email, String password, String firstName,
+            String lastName, TenantSettings settings, boolean resetPassword) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'createUser'");
     }
 }

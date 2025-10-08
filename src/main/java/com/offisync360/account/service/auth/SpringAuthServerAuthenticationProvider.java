@@ -17,12 +17,7 @@ public class SpringAuthServerAuthenticationProvider implements AuthenticationPro
         throw new UnsupportedOperationException("Spring Authorization Server implementation not yet available");
     }
     
-    @Override
-    public UserRepresentation createAdminUser(String realmName, String email, String password, 
-                                            String firstName, String lastName, TenantSettings settings) {
-        // TODO: Implement Spring Authorization Server user creation
-        throw new UnsupportedOperationException("Spring Authorization Server implementation not yet available");
-    }
+    
     
     @Override
     public ClientRepresentation createClient(String realmName, String clientId, String clientName, 
@@ -52,5 +47,23 @@ public class SpringAuthServerAuthenticationProvider implements AuthenticationPro
     @Override
     public String getProviderType() {
         return "SPRING_AUTH_SERVER";
+    }
+
+
+
+    @Override
+    public UserRepresentation createAdminUser(String realmName, String email, String password, String firstName,
+            String lastName, TenantSettings settings, boolean resetPassword) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'createAdminUser'");
+    }
+
+
+
+    @Override
+    public UserRepresentation createUser(String realmName, String email, String password, String firstName,
+            String lastName, TenantSettings settings, boolean resetPassword) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'createUser'");
     }
 }

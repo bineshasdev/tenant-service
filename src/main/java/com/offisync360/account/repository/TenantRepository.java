@@ -22,5 +22,5 @@ public interface TenantRepository extends JpaRepository<Tenant, String> {
 
     boolean existsByAdminEmail(String email);
 
-    boolean existsByRealmName(String realmName);
+    boolean existsByRealmName(String realmName); 
 }

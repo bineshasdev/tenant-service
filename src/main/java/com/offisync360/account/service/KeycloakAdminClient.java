@@ -50,8 +50,9 @@ public class KeycloakAdminClient {
         return realm;
     }
 
-    public UserRepresentation createAdminUser(String realmName, String email, 
-                                          String password, String firstName, String lastName) {
+    public UserRepresentation createUser(String realmName, String email, 
+                                          String password, String firstName, String lastName,
+                                           boolean resetPassword, String role) {
         Keycloak keycloak = getAdminKeycloakInstance();
         
         // Create user
@@ -66,7 +67,7 @@ public class KeycloakAdminClient {
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(password);
-        credential.setTemporary(true);
+        credential.setTemporary(resetPassword);
         
         user.setCredentials(List.of(credential));
         
@@ -74,9 +75,15 @@ public class KeycloakAdminClient {
         String userId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
         
         // Assign admin role
-        RoleRepresentation adminRole = keycloak.realm(realmName).roles().get("admin").toRepresentation();
-        keycloak.realm(realmName).users().get(userId).roles().realmLevel().add(List.of(adminRole));
-        
+        if (role.equals("admin")) {
+
+          RoleRepresentation adminRole = keycloak.realm(realmName).roles().get("admin").toRepresentation();
+          keycloak.realm(realmName).users().get(userId).roles().realmLevel().add(List.of(adminRole));
+        } else {
+            RoleRepresentation userRole = keycloak.realm(realmName).roles().get("user").toRepresentation();
+            keycloak.realm(realmName).users().get(userId).roles().realmLevel().add(List.of(userRole));
+         
+        }
         return user;
     }
 

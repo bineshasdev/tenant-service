@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.keycloak.representations.idm.ClientRepresentation;
@@ -21,17 +22,21 @@ import com.offisync360.account.model.Subscription;
 import com.offisync360.account.model.SubscriptionPlan;
 import com.offisync360.account.model.Tenant;
 import com.offisync360.account.model.TenantSettings;
+import com.offisync360.account.model.User.UserRole;
 import com.offisync360.account.repository.SubscriptionPlanRepository;
 import com.offisync360.account.repository.SubscriptionRepository;
 import com.offisync360.account.repository.TenantRepository;
+import com.offisync360.account.repository.UserRepository;
 import com.offisync360.account.service.auth.AuthenticationProvider;
 import com.offisync360.account.service.auth.AuthenticationProviderFactory;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TenantService {
 
     private final TenantRepository tenantRepository;
@@ -49,6 +54,10 @@ public class TenantService {
     private final SubscriptionRepository subscriptionRepository;
     
     private final AuthenticationProviderFactory authProviderFactory;
+    
+    private final UserService userService;
+
+    private final UserRepository userRepository;
 
     private static final List<String> RESERVED_TENANT_IDS = List.of(
     "admin", "system", "master", "keycloak", "auth", "api");
@@ -73,7 +82,7 @@ public class TenantService {
        
         String uiClientId = appProperties.getClientIds().getUi(); // client id for public client like ui
         String apiClientId = appProperties.getClientIds().getApi(); // client id for api client or backend client
-        String adminPassword = passwordGenerator.generateStrongPassword(); // password for admin user
+        String adminPassword = request.getAdminPassword() != null && !request.getAdminPassword().isEmpty() ? request.getAdminPassword() : passwordGenerator.generateStrongPassword(); // password for admin user
 
         Tenant tenant = new Tenant();
         tenant.setId(UUID.randomUUID().toString());
@@ -127,7 +136,7 @@ public class TenantService {
                 adminPassword,
                 request.getAdminFirstName(),
                 request.getAdminLastName(),
-                settings);
+                settings, (request.getAdminPassword() == null ||  request.getAdminPassword().isEmpty()));
 
         // 4. Create API client using authentication provider
         ClientRepresentation apiClient = authProvider.createClient(
@@ -149,6 +158,25 @@ public class TenantService {
         tenant.setClientSecret(apiClient.getSecret());
         tenant.setPublicClientSecret(uiClient.getSecret());
         tenantRepository.save(tenant);
+
+        // 6. Create admin user in database
+        try {
+            userService.createUser(
+                tenant.getId(),
+                request.getAdminEmail(),
+                request.getAdminFirstName(),
+                request.getAdminLastName(),
+                UserRole.ADMIN,
+                adminUser.getId(),
+                adminUser.getUsername()
+            );
+            log.info("Admin user created in database for tenant: {}", tenant.getId());
+        } catch (Exception e) {
+            log.error("Failed to create admin user in database for tenant: {}, error: {}", 
+                     tenant.getId(), e.getMessage());
+            // Don't fail the entire signup process if user creation fails
+            // The user can be created later through the admin interface
+        }
 
         notificationService.sendSignupStartedNotification();
         return TenantSignupResponse.builder()
@@ -190,6 +218,17 @@ public class TenantService {
         subscriptionRepository.save(newSubscription);
  
     }
+
+    public Tenant findTenantByUsernameOrEmail(String usernameOrEmail) {
+        // Try to find by admin email first
+        Optional<Tenant> tenantByEmail = userRepository.findFirstTenantByUsernameOrEmail(usernameOrEmail);
+        if(tenantByEmail.isEmpty()) {
+            throw new BusinessValidationException("Tenant not found");
+        }
+
+        return tenantByEmail.get();
+    }
+    
 
     private void validateSignupRequest(TenantSignupRequest request, String tenantId) {
         List<String> errors = new ArrayList<>();
