@@ -1,15 +1,20 @@
 package com.offisync360.account.service.auth;
 
+import com.offisync360.account.dto.auth.ClientResponse;
+import com.offisync360.account.dto.auth.RealmResponse;
+import com.offisync360.account.dto.auth.UserResponse;
 import com.offisync360.account.model.TenantSettings;
 import com.offisync360.account.service.KeycloakAdminClient;
 import org.keycloak.representations.idm.ClientRepresentation;
-import org.keycloak.representations.idm.RequiredActionProviderRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * Keycloak implementation of the AuthenticationProvider interface
+ */
 @Component
 public class KeycloakAuthenticationProvider implements AuthenticationProvider {
     
@@ -20,75 +25,63 @@ public class KeycloakAuthenticationProvider implements AuthenticationProvider {
     }
     
     @Override
-    public RealmRepresentation createRealm(String realmName, String displayName, TenantSettings settings) {
-        RealmRepresentation realm = keycloakAdminClient.createRealm(realmName, displayName);
+    public RealmResponse createRealm(String realmName, String displayName, TenantSettings settings) {
+        RealmRepresentation keycloakRealm = keycloakAdminClient.createRealm(realmName, displayName, settings);
         
-        // Apply tenant settings to realm
-        if (settings.getAccessTokenLifespan() != null) {
-            realm.setAccessTokenLifespan(settings.getAccessTokenLifespan());
-        }
-        if (settings.getSsoSessionIdleTimeout() != null) {
-            realm.setSsoSessionIdleTimeout(settings.getSsoSessionIdleTimeout());
-        }
-        if (settings.getSsoSessionMaxLifespan() != null) {
-            realm.setSsoSessionMaxLifespan(settings.getSsoSessionMaxLifespan());
-        }
-        
-        // Email as Username Configuration
-        if (settings.getAllowEmailAsUsername() != null && settings.getAllowEmailAsUsername()) {
-            realm.setLoginWithEmailAllowed(true);
-            realm.setRegistrationEmailAsUsername(true); // This is critical for email as username
-            realm.setDuplicateEmailsAllowed(false); // Ensure emails are unique
-        }
-        
-        if (settings.getEmailVerificationRequired() != null) {
-            realm.setVerifyEmail(settings.getEmailVerificationRequired());
-        }
-        if (settings.getRegistrationAllowed() != null) {
-            realm.setRegistrationAllowed(settings.getRegistrationAllowed());
-        }
-        if (settings.getRememberMe() != null) {
-            realm.setRememberMe(settings.getRememberMe());
-        }
-        
-        // Enable Forgot Password / Reset Password functionality
-        realm.setResetPasswordAllowed(true);
-        
-        // Configure required actions for password reset
-        var updatePasswordAction = new RequiredActionProviderRepresentation();
-        updatePasswordAction.setEnabled(true);
-        updatePasswordAction.setName("UPDATE_PASSWORD");
-        updatePasswordAction.setAlias("UPDATE_PASSWORD");
-        
-        // Enable additional required actions
-        var verifyEmailAction = new RequiredActionProviderRepresentation();
-        verifyEmailAction.setEnabled(true);
-        verifyEmailAction.setName("VERIFY_EMAIL");
-        verifyEmailAction.setAlias("VERIFY_EMAIL");
-        
-        // Set all required actions (don't override!)
-        realm.setRequiredActions(List.of(updatePasswordAction, verifyEmailAction));
-        
-        return realm;
+        // Convert Keycloak-specific response to generic response
+        return RealmResponse.builder()
+                .realmId(keycloakRealm.getId())
+                .realmName(keycloakRealm.getRealm())
+                .displayName(keycloakRealm.getDisplayName())
+                .enabled(keycloakRealm.isEnabled() != null ? keycloakRealm.isEnabled() : true)
+                .authServerUrl(keycloakAdminClient.getServerUrl())
+                .providerSpecificData(keycloakRealm) // Store original for advanced usage
+                .build();
     }
     
     @Override
-    public UserRepresentation createAdminUser(String realmName, String email, String password, 
+    public UserResponse createAdminUser(String realmName, String email, String password, 
                                             String firstName, String lastName, TenantSettings settings, boolean resetPassword) {
-        return keycloakAdminClient.createUser(realmName, email, password, firstName, lastName, resetPassword, "admin");
+        UserRepresentation keycloakUser = keycloakAdminClient.createUser(
+                realmName, email, password, firstName, lastName, resetPassword, "admin");
+        
+        // Convert Keycloak-specific response to generic response
+        return convertToUserResponse(keycloakUser);
     }
     
     @Override
-    public UserRepresentation createUser(String realmName, String email, String password, String firstName,
+    public UserResponse createUser(String realmName, String email, String password, String firstName,
             String lastName, TenantSettings settings, boolean resetPassword) {
-         
-        return keycloakAdminClient.createUser(realmName, email, password, firstName, lastName, resetPassword, "user");
+        UserRepresentation keycloakUser = keycloakAdminClient.createUser(
+                realmName, email, password, firstName, lastName, resetPassword, "user");
+        
+        // Convert Keycloak-specific response to generic response
+        return convertToUserResponse(keycloakUser);
     }
 
     @Override
-    public ClientRepresentation createClient(String realmName, String clientId, String clientName, 
+    public ClientResponse createClient(String realmName, String clientId, String clientName, 
                                            boolean confidential, TenantSettings settings) {
-        return keycloakAdminClient.createClient(realmName, clientId, clientName, confidential);
+        ClientRepresentation keycloakClient = keycloakAdminClient.createClient(
+                realmName, clientId, clientName, confidential);
+        
+        // Convert Keycloak-specific response to generic response
+        return ClientResponse.builder()
+                .clientId(keycloakClient.getClientId())
+                .clientName(keycloakClient.getName())
+                .clientSecret(keycloakClient.getSecret())
+                .confidential(!keycloakClient.isPublicClient())
+                .enabled(keycloakClient.isEnabled() != null ? keycloakClient.isEnabled() : true)
+                .redirectUris(keycloakClient.getRedirectUris())
+                .webOrigins(keycloakClient.getWebOrigins())
+                .directAccessGrantsEnabled(keycloakClient.isDirectAccessGrantsEnabled() != null ? 
+                        keycloakClient.isDirectAccessGrantsEnabled() : false)
+                .standardFlowEnabled(keycloakClient.isStandardFlowEnabled() != null ? 
+                        keycloakClient.isStandardFlowEnabled() : false)
+                .serviceAccountsEnabled(keycloakClient.isServiceAccountsEnabled() != null ? 
+                        keycloakClient.isServiceAccountsEnabled() : false)
+                .providerSpecificData(keycloakClient) // Store original for advanced usage
+                .build();
     }
     
     @Override
@@ -109,5 +102,23 @@ public class KeycloakAuthenticationProvider implements AuthenticationProvider {
     @Override
     public String getProviderType() {
         return "KEYCLOAK";
-    } 
+    }
+    
+    /**
+     * Helper method to convert Keycloak UserRepresentation to generic UserResponse
+     */
+    private UserResponse convertToUserResponse(UserRepresentation keycloakUser) {
+        return UserResponse.builder()
+                .userId(keycloakUser.getId())
+                .username(keycloakUser.getUsername())
+                .email(keycloakUser.getEmail())
+                .firstName(keycloakUser.getFirstName())
+                .lastName(keycloakUser.getLastName())
+                .enabled(keycloakUser.isEnabled() != null ? keycloakUser.isEnabled() : true)
+                .emailVerified(keycloakUser.isEmailVerified() != null ? keycloakUser.isEmailVerified() : false)
+                .roles(List.of()) // Roles would need to be fetched separately in Keycloak
+                .requiredActions(keycloakUser.getRequiredActions())
+                .providerSpecificData(keycloakUser) // Store original for advanced usage
+                .build();
+    }
 }

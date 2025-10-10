@@ -8,9 +8,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.keycloak.representations.idm.ClientRepresentation;
-import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Service;
+
+import com.offisync360.account.dto.auth.ClientResponse;
+import com.offisync360.account.dto.auth.UserResponse;
 
 import com.offisync360.account.common.PasswordGenerator;
 import com.offisync360.account.common.properties.AppProperties;
@@ -134,9 +135,9 @@ public class TenantService {
 
         // ============= PHASE 2: AUTH PROVIDER PROVISIONING =============
         
-        UserRepresentation adminUser = null;
-        ClientRepresentation apiClient = null;
-        ClientRepresentation uiClient = null;
+        UserResponse adminUser = null;
+        ClientResponse apiClient = null;
+        ClientResponse uiClient = null;
         
         try {
             log.info("Phase 2: Starting auth provider provisioning for realm: {}", realmName);
@@ -203,8 +204,8 @@ public class TenantService {
             log.info("Phase 3: Updating tenant with auth provider details");
             
             // Update tenant with auth provider secrets
-            tenant.setClientSecret(apiClient.getSecret());
-            tenant.setPublicClientSecret(uiClient.getSecret());
+            tenant.setClientSecret(apiClient.getClientSecret());
+            tenant.setPublicClientSecret(uiClient.getClientSecret());
             tenant.setStatus("ACTIVE"); // Mark as active now
             tenant = tenantRepository.save(tenant);
             log.info("Tenant updated with client secrets and marked as ACTIVE");
@@ -218,7 +219,7 @@ public class TenantService {
                     request.getAdminFirstName(),
                     request.getAdminLastName(),
                     UserRole.ADMIN,
-                    adminUser.getId(),
+                    adminUser.getUserId(),
                     adminUser.getUsername()
                 );
                 log.info("Admin user created in database for tenant: {}", tenant.getId());

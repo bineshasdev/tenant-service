@@ -73,7 +73,7 @@ public class TenantSettings {
     public static TenantSettings getDefaultSettings() {
         return TenantSettings.builder()
                 .authProvider("KEYCLOAK")
-                .accessTokenLifespan(300) // 5 minutes
+                .accessTokenLifespan(1800) // 30 minutes
                 .refreshTokenLifespan(1800) // 30 minutes
                 .ssoSessionIdleTimeout(1800) // 30 minutes
                 .ssoSessionMaxLifespan(36000) // 10 hours

@@ -10,10 +10,13 @@ import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.representations.idm.ClientRepresentation; 
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
+import org.keycloak.representations.idm.RequiredActionProviderRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import com.offisync360.account.model.TenantSettings;
 
 import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +39,7 @@ public class KeycloakAdminClient {
     private String password;
 
 
-    public RealmRepresentation createRealm(String realmName, String displayName) {
+    public RealmRepresentation createRealm(String realmName, String displayName, TenantSettings settings) {
         Keycloak keycloak = getAdminKeycloakInstance();
         
         RealmRepresentation realm = new RealmRepresentation();
@@ -45,10 +48,57 @@ public class KeycloakAdminClient {
         realm.setEnabled(true);
         realm.setRegistrationAllowed(false);
         realm.setRememberMe(true);
+        // Apply tenant settings to realm
+        if (settings.getAccessTokenLifespan() != null) {
+            realm.setAccessTokenLifespan(settings.getAccessTokenLifespan());
+        }
+        if (settings.getSsoSessionIdleTimeout() != null) {
+            realm.setSsoSessionIdleTimeout(settings.getSsoSessionIdleTimeout());
+        }
+        if (settings.getSsoSessionMaxLifespan() != null) {
+            realm.setSsoSessionMaxLifespan(settings.getSsoSessionMaxLifespan());
+        }
+        
+        // Email as Username Configuration
+        if (settings.getAllowEmailAsUsername() != null && settings.getAllowEmailAsUsername()) {
+            realm.setLoginWithEmailAllowed(true);
+            realm.setRegistrationEmailAsUsername(true); // This is critical for email as username
+            realm.setDuplicateEmailsAllowed(false); // Ensure emails are unique
+        }
+        
+        if (settings.getEmailVerificationRequired() != null) {
+            realm.setVerifyEmail(settings.getEmailVerificationRequired());
+        }
+        if (settings.getRegistrationAllowed() != null) {
+            realm.setRegistrationAllowed(settings.getRegistrationAllowed());
+        }
+        if (settings.getRememberMe() != null) {
+            realm.setRememberMe(settings.getRememberMe());
+        }
+        
+        // Enable Forgot Password / Reset Password functionality
+        realm.setResetPasswordAllowed(true);
+        
+        // Configure required actions for password reset
+        var updatePasswordAction = new RequiredActionProviderRepresentation();
+        updatePasswordAction.setEnabled(true);
+        updatePasswordAction.setName("UPDATE_PASSWORD");
+        updatePasswordAction.setAlias("UPDATE_PASSWORD");
+        
+        // Enable additional required actions
+        var verifyEmailAction = new RequiredActionProviderRepresentation();
+        verifyEmailAction.setEnabled(true);
+        verifyEmailAction.setName("VERIFY_EMAIL");
+        verifyEmailAction.setAlias("VERIFY_EMAIL");
+        
+        // Set all required actions (don't override!)
+        realm.setRequiredActions(List.of(updatePasswordAction, verifyEmailAction));
         
         keycloak.realms().create(realm);
         return realm;
     }
+
+     
 
     public UserRepresentation createUser(String realmName, String email, 
                                           String password, String firstName, String lastName,
