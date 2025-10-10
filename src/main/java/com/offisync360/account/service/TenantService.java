@@ -9,7 +9,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.keycloak.representations.idm.ClientRepresentation;
-import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Service;
 
@@ -64,10 +63,12 @@ public class TenantService {
 
     @Transactional
     public TenantSignupResponse registerTenant(TenantSignupRequest request) {
+        log.info("Starting tenant registration for company: {}", request.getCompanyName());
         
+        // ============= PHASE 1: VALIDATION & DATABASE SETUP =============
         
         var companyName = request.getCompanyName();
-        //Generate tenant id using tenantIdService and ensure it is unique from company name
+        // Generate tenant id using tenantIdService and ensure it is unique from company name
         String realmName = tenantIdService.generateTenantId(companyName);
 
         // Get tenant settings (you can load from database or use defaults)
@@ -76,14 +77,20 @@ public class TenantService {
         // Get authentication provider
         AuthenticationProvider authProvider = authProviderFactory.getDefaultProvider();
         
-        //Ensure tenant id is unique in authentication provider
+        // Ensure tenant id is unique in authentication provider
         realmName = tenantIdService.ensureUniqueTenantId(realmName, authProvider::realmExists);
+        
+        // Validate signup request
         validateSignupRequest(request, realmName);
        
         String uiClientId = appProperties.getClientIds().getUi(); // client id for public client like ui
         String apiClientId = appProperties.getClientIds().getApi(); // client id for api client or backend client
-        String adminPassword = request.getAdminPassword() != null && !request.getAdminPassword().isEmpty() ? request.getAdminPassword() : passwordGenerator.generateStrongPassword(); // password for admin user
+        String adminPassword = request.getAdminPassword() != null && !request.getAdminPassword().isEmpty() 
+                ? request.getAdminPassword() 
+                : passwordGenerator.generateStrongPassword(); // password for admin user
 
+        // 1. Save Tenant to Database (without auth provider details)
+        log.info("Phase 1: Creating tenant in database with realm: {}", realmName);
         Tenant tenant = new Tenant();
         tenant.setId(UUID.randomUUID().toString());
         tenant.setDisplayName(request.getDisplayName());
@@ -95,13 +102,17 @@ public class TenantService {
         tenant.setPhone(request.getMobileNumber());
         tenant.setAdminTempPassword(adminPassword);
         tenant.setClientId(apiClientId);
-        tenant.setPublicClientId(uiClientId);  
-        tenantRepository.save(tenant);
+        tenant.setPublicClientId(uiClientId);
+        tenant.setStatus("PROVISIONING"); // Mark as provisioning
+        tenant = tenantRepository.save(tenant);
+        log.info("Tenant saved to database with ID: {}", tenant.getId());
 
-
+        // 2. Create Subscription in Database
+        log.info("Phase 1: Creating subscription for tenant: {}", tenant.getId());
         Subscription subscription = new Subscription();
         subscription.setId(UUID.randomUUID());
         subscription.setTenant(tenant);
+        
         // If no plan id in request, set to free plan
         SubscriptionPlan plan;
         if (request.getSubscriptionId() == null) {
@@ -118,74 +129,130 @@ public class TenantService {
         subscription.setEndDate(LocalDateTime.now().plusYears(1)); 
         subscription.setTrialEndDate(LocalDateTime.now().plusDays(14));
         subscription.setAutoRenew(true);
+        subscription = subscriptionRepository.save(subscription);
+        log.info("Subscription saved with ID: {}", subscription.getId());
 
-        subscriptionRepository.save(subscription);
-         
-
-
-        // 1. Create realm using authentication provider
-        RealmRepresentation realm = authProvider.createRealm(realmName, request.getDisplayName(), settings);
+        // ============= PHASE 2: AUTH PROVIDER PROVISIONING =============
         
-        // 2. Create roles using authentication provider
-        authProvider.createRealmRoles(realmName, List.of("user", "admin", "guest"), settings);
-
-        // 3. Create admin user using authentication provider
-        UserRepresentation adminUser = authProvider.createAdminUser(
-                realmName,
-                request.getAdminEmail(),
-                adminPassword,
-                request.getAdminFirstName(),
-                request.getAdminLastName(),
-                settings, (request.getAdminPassword() == null ||  request.getAdminPassword().isEmpty()));
-
-        // 4. Create API client using authentication provider
-        ClientRepresentation apiClient = authProvider.createClient(
-                realmName,
-                apiClientId,
-                "API client for " + request.getDisplayName(),
-                true,
-                settings);
-
-        // 5. Create UI client using authentication provider
-        ClientRepresentation uiClient = authProvider.createClient(
-                realmName,
-                uiClientId,
-                "UI client for " + request.getDisplayName(),
-                false,
-                settings);
-
+        UserRepresentation adminUser = null;
+        ClientRepresentation apiClient = null;
+        ClientRepresentation uiClient = null;
         
-        tenant.setClientSecret(apiClient.getSecret());
-        tenant.setPublicClientSecret(uiClient.getSecret());
-        tenantRepository.save(tenant);
-
-        // 6. Create admin user in database
         try {
-            userService.createUser(
-                tenant.getId(),
-                request.getAdminEmail(),
-                request.getAdminFirstName(),
-                request.getAdminLastName(),
-                UserRole.ADMIN,
-                adminUser.getId(),
-                adminUser.getUsername()
-            );
-            log.info("Admin user created in database for tenant: {}", tenant.getId());
+            log.info("Phase 2: Starting auth provider provisioning for realm: {}", realmName);
+            
+            // 1. Create realm using authentication provider
+            log.info("Creating realm in auth provider: {}", realmName);
+            authProvider.createRealm(realmName, request.getDisplayName(), settings);
+            
+            // 2. Create roles using authentication provider
+            log.info("Creating realm roles in auth provider");
+            authProvider.createRealmRoles(realmName, List.of("user", "admin", "guest"), settings);
+
+            // 3. Create admin user using authentication provider
+            log.info("Creating admin user in auth provider: {}", request.getAdminEmail());
+            adminUser = authProvider.createAdminUser(
+                    realmName,
+                    request.getAdminEmail(),
+                    adminPassword,
+                    request.getAdminFirstName(),
+                    request.getAdminLastName(),
+                    settings, 
+                    (request.getAdminPassword() == null || request.getAdminPassword().isEmpty()));
+
+            // 4. Create API client using authentication provider
+            log.info("Creating API client in auth provider: {}", apiClientId);
+            apiClient = authProvider.createClient(
+                    realmName,
+                    apiClientId,
+                    "API client for " + request.getDisplayName(),
+                    true,
+                    settings);
+
+            // 5. Create UI client using authentication provider
+            log.info("Creating UI client in auth provider: {}", uiClientId);
+            uiClient = authProvider.createClient(
+                    realmName,
+                    uiClientId,
+                    "UI client for " + request.getDisplayName(),
+                    false,
+                    settings);
+                    
+            log.info("Phase 2: Auth provider provisioning completed successfully");
+            
         } catch (Exception e) {
-            log.error("Failed to create admin user in database for tenant: {}, error: {}", 
-                     tenant.getId(), e.getMessage());
-            // Don't fail the entire signup process if user creation fails
-            // The user can be created later through the admin interface
+            log.error("Phase 2: Auth provider provisioning failed for tenant: {}, error: {}", 
+                     tenant.getId(), e.getMessage(), e);
+            
+            // Mark tenant as failed provisioning
+            tenant.setStatus("PROVISIONING_FAILED");
+            tenantRepository.save(tenant);
+            
+            // Optionally: You can choose to either:
+            // 1. Keep the DB records and allow retry/manual fix
+            // 2. Rollback by deleting tenant and subscription
+            // For now, keeping records for potential retry
+            
+            throw new BusinessValidationException(
+                "Failed to provision authentication resources: " + e.getMessage());
         }
 
-        notificationService.sendSignupStartedNotification();
-        return TenantSignupResponse.builder()
-                .tenantId(tenant.getId().toString())
-                .realmName(realmName) 
-                .adminEmail(request.getAdminEmail())
-                .apiClientId(apiClient.getClientId())
-                .uiClientId(uiClient.getClientId())
-                .build();
+        // ============= PHASE 3: UPDATE DATABASE WITH AUTH PROVIDER DETAILS =============
+        
+        try {
+            log.info("Phase 3: Updating tenant with auth provider details");
+            
+            // Update tenant with auth provider secrets
+            tenant.setClientSecret(apiClient.getSecret());
+            tenant.setPublicClientSecret(uiClient.getSecret());
+            tenant.setStatus("ACTIVE"); // Mark as active now
+            tenant = tenantRepository.save(tenant);
+            log.info("Tenant updated with client secrets and marked as ACTIVE");
+
+            // 6. Create admin user in database
+            log.info("Phase 3: Creating admin user in database");
+            try {
+                userService.createUser(
+                    tenant.getId(),
+                    request.getAdminEmail(),
+                    request.getAdminFirstName(),
+                    request.getAdminLastName(),
+                    UserRole.ADMIN,
+                    adminUser.getId(),
+                    adminUser.getUsername()
+                );
+                log.info("Admin user created in database for tenant: {}", tenant.getId());
+            } catch (Exception e) {
+                log.error("Failed to create admin user in database for tenant: {}, error: {}", 
+                         tenant.getId(), e.getMessage());
+                // Don't fail the entire signup process if user creation fails
+                // The user can be created later through the admin interface
+            }
+
+            // Send notification
+            log.info("Sending signup notification");
+            notificationService.sendSignupStartedNotification();
+            
+            log.info("Tenant registration completed successfully for tenant: {}", tenant.getId());
+            
+            return TenantSignupResponse.builder()
+                    .tenantId(tenant.getId().toString())
+                    .realmName(realmName) 
+                    .adminEmail(request.getAdminEmail())
+                    .apiClientId(apiClient.getClientId())
+                    .uiClientId(uiClient.getClientId())
+                    .build();
+                    
+        } catch (Exception e) {
+            log.error("Phase 3: Failed to update database with auth provider details: {}", e.getMessage(), e);
+            
+            // Mark tenant as needs attention
+            tenant.setStatus("INCOMPLETE");
+            tenantRepository.save(tenant);
+            
+            throw new BusinessValidationException(
+                "Tenant created in auth provider but failed to update database: " + e.getMessage());
+        }
     }
  
 

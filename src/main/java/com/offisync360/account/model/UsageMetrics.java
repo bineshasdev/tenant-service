@@ -24,8 +24,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UsageMetrics {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Id 
     private UUID id;
     
     @ManyToOne

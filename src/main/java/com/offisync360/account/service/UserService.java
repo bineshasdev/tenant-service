@@ -132,7 +132,7 @@ public class UserService {
         
         // Create admin user entity
         User adminUser = User.builder()
-                .id(UUID.fromString(userId))
+                .id(UUID.randomUUID())
                 .email(email)
                 .username(username)
                 .firstName(firstName)
@@ -255,8 +255,12 @@ public class UserService {
                 metrics = existingMetrics.get();
             } else {
                 metrics = new UsageMetrics();
+                metrics.setId(UUID.randomUUID());
+                metrics.setMetricDate(LocalDateTime.now());
+                metrics.setMetricType(UsageMetrics.MetricType.USERS.getValue()); 
                 metrics.setTenant(tenantRepository.findById(tenantId).orElse(null));
                 metrics.setCreatedAt(LocalDateTime.now());
+                
             }
             
             // Update user count

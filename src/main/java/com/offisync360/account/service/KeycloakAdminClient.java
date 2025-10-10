@@ -57,33 +57,42 @@ public class KeycloakAdminClient {
         
         // Create user
         UserRepresentation user = new UserRepresentation();
-        user.setUsername(email);
+        user.setUsername(email); // Use email as username
         user.setEmail(email);
         user.setFirstName(firstName);
         user.setLastName(lastName);
         user.setEnabled(true);
-        user.setEmailVerified(true);
+        user.setEmailVerified(true); // Mark email as verified initially
         
+        // Set password
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(password);
-        credential.setTemporary(resetPassword);
+        credential.setTemporary(resetPassword); // If true, user must change password on first login
         
         user.setCredentials(List.of(credential));
+        
+        // Add required actions if password needs to be reset
+        if (resetPassword) {
+            user.setRequiredActions(List.of("UPDATE_PASSWORD"));
+        }
         
         Response response = keycloak.realm(realmName).users().create(user);
         String userId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
         
-        // Assign admin role
+        // Update user object with generated ID
+        user.setId(userId);
+        
+        // Assign role to user
         if (role.equals("admin")) {
-
-          RoleRepresentation adminRole = keycloak.realm(realmName).roles().get("admin").toRepresentation();
-          keycloak.realm(realmName).users().get(userId).roles().realmLevel().add(List.of(adminRole));
+            RoleRepresentation adminRole = keycloak.realm(realmName).roles().get("admin").toRepresentation();
+            keycloak.realm(realmName).users().get(userId).roles().realmLevel().add(List.of(adminRole));
         } else {
             RoleRepresentation userRole = keycloak.realm(realmName).roles().get("user").toRepresentation();
             keycloak.realm(realmName).users().get(userId).roles().realmLevel().add(List.of(userRole));
-         
         }
+        
+        log.info("User created successfully in Keycloak: {} with role: {}", email, role);
         return user;
     }
 

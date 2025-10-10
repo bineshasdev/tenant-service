@@ -33,9 +33,14 @@ public class KeycloakAuthenticationProvider implements AuthenticationProvider {
         if (settings.getSsoSessionMaxLifespan() != null) {
             realm.setSsoSessionMaxLifespan(settings.getSsoSessionMaxLifespan());
         }
-        if (settings.getAllowEmailAsUsername() != null) {
-            realm.setLoginWithEmailAllowed(settings.getAllowEmailAsUsername());
+        
+        // Email as Username Configuration
+        if (settings.getAllowEmailAsUsername() != null && settings.getAllowEmailAsUsername()) {
+            realm.setLoginWithEmailAllowed(true);
+            realm.setRegistrationEmailAsUsername(true); // This is critical for email as username
+            realm.setDuplicateEmailsAllowed(false); // Ensure emails are unique
         }
+        
         if (settings.getEmailVerificationRequired() != null) {
             realm.setVerifyEmail(settings.getEmailVerificationRequired());
         }
@@ -45,14 +50,24 @@ public class KeycloakAuthenticationProvider implements AuthenticationProvider {
         if (settings.getRememberMe() != null) {
             realm.setRememberMe(settings.getRememberMe());
         }
+        
+        // Enable Forgot Password / Reset Password functionality
         realm.setResetPasswordAllowed(true);
+        
+        // Configure required actions for password reset
         var updatePasswordAction = new RequiredActionProviderRepresentation();
         updatePasswordAction.setEnabled(true);
-        updatePasswordAction.setName("update_password");
-        updatePasswordAction.setAlias("update_password");
-
-        realm.setRequiredActions(List.of(updatePasswordAction));
-        realm.setRequiredActions(List.of());
+        updatePasswordAction.setName("UPDATE_PASSWORD");
+        updatePasswordAction.setAlias("UPDATE_PASSWORD");
+        
+        // Enable additional required actions
+        var verifyEmailAction = new RequiredActionProviderRepresentation();
+        verifyEmailAction.setEnabled(true);
+        verifyEmailAction.setName("VERIFY_EMAIL");
+        verifyEmailAction.setAlias("VERIFY_EMAIL");
+        
+        // Set all required actions (don't override!)
+        realm.setRequiredActions(List.of(updatePasswordAction, verifyEmailAction));
         
         return realm;
     }
