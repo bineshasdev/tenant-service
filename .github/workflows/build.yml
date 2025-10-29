@@ -1,0 +1,39 @@
+name: "Build and Deploy Tenant Service to ECS"
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'tenant-service/**'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: flowcore-tenant-service
+  ECS_SERVICE: tenant-service
+  ECS_CLUSTER: flowcore-cluster
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to ECS
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/master' && 'production') || 'dev' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+     
