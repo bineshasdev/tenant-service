@@ -63,11 +63,12 @@ jobs:
         run: chmod +x mvnw
       - name: Build with Maven
         run: ./mvnw clean package -DskipTests
-      - name: Build and push Docker image to AWS ECR
+      - name: Login to AWS ECR
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registry-type: public
           mask-password: false
+      - name: Build and push Docker image to AWS ECR 
         run: |
           docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/tenant-service:latest .
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/tenant-service:latest
