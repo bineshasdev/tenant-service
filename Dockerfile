@@ -19,14 +19,6 @@ COPY --from=builder ${DEPENDENCY}/BOOT-INF/lib /app/lib
 COPY --from=builder ${DEPENDENCY}/META-INF /app/META-INF
 COPY --from=builder ${DEPENDENCY}/BOOT-INF/classes /app
 
-# Add Grafana Agent
-ADD https://github.com/grafana/agent/releases/download/v0.24.2/agent-linux-amd64.zip /tmp/agent.zip
-RUN apt-get update && apt-get install -y unzip && \
-    unzip /tmp/agent.zip -d /app && \
-    rm /tmp/agent.zip
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
-COPY agent-config.yaml /app/agent-config.yaml
-
-ENTRYPOINT ["sh", "-c", \
-"java ${JAVA_OPTS} -cp app:app/lib/* com.example.account.AccountServiceApplication && \
-/app/agent-linux-amd64 -config.file=/app/agent-config.yaml"]
+ENTRYPOINT ["java", "-cp", "app:app/lib/*", "com.offisync360.account.AccountServiceApplication"]

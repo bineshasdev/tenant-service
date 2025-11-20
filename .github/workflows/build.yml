@@ -63,6 +63,13 @@ jobs:
         run: chmod +x mvnw
       - name: Build with Maven
         run: ./mvnw clean package -DskipTests
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/devops-role
+          role-session-name: devops-role
+          aws-region: ${env.AWS_REGION}
+
       - name: Login to AWS ECR
         uses: aws-actions/amazon-ecr-login@v2
         with:
