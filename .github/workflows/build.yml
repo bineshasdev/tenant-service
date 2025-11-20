@@ -79,7 +79,7 @@ jobs:
       - name: Build and push Docker image to AWS Public ECR 
         env:
           IMAGE_TAG: latest  
-          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+          REGISTRY: public.ecr.aws #${{ steps.login-ecr-public.outputs.registry }}
           REGISTRY_ALIAS: f5o0w1a0
           REPOSITORY: newsyntax/tenant-service 
         run: |
