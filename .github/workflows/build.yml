@@ -20,10 +20,8 @@ on:
           - production
 
 env:
-  AWS_REGION: ap-south-1
-  ECR_REPOSITORY: flowcore-tenant-service
-  ECS_SERVICE: tenant-service
-  ECS_CLUSTER: flowcore-cluster
+  AWS_REGION: us-east-1
+  REGISTRY: public.ecr.aws
 
 jobs:
   test:
